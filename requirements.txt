@@ -1,0 +1,24 @@
+# Install with:  pip install -r requirements.txt
+#
+# NOTE: this file used to be the output of `pip list`, which pip cannot read.
+# Keep it in this format. To regenerate exact versions: pip freeze > requirements.txt
+
+fastapi
+uvicorn[standard]
+
+# database
+SQLAlchemy
+PyMySQL
+# MySQL 8.x authenticates with caching_sha2_password, and PyMySQL needs
+# cryptography to complete that handshake over TCP. Without it you get:
+#   RuntimeError: 'cryptography' package is required for ... caching_sha2_password
+cryptography
+
+# auth
+bcrypt
+PyJWT
+python-multipart
+
+# config / validation
+python-dotenv
+email-validator
