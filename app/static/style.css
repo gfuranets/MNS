@@ -8,6 +8,7 @@
   --rule: #d9dbd4;
   --green: #0f5132;
   --danger: #b03a2e;
+  --warn: #8a6400;
 }
 
 * { box-sizing: border-box; }
@@ -100,7 +101,7 @@ h3 { margin: 0 0 .75rem; }
 .field { display: flex; flex-direction: column; gap: .3rem; margin-bottom: 1rem; }
 .field label { font-size: .85rem; color: var(--muted); }
 
-input, textarea {
+input, textarea, select {
   font: inherit;
   padding: .5rem .6rem;
   border: 1px solid var(--rule);
@@ -108,7 +109,7 @@ input, textarea {
   background: #fff;
   color: inherit;
 }
-input:focus, textarea:focus { outline: 2px solid var(--green); outline-offset: -1px; border-color: var(--green); }
+input:focus, textarea:focus, select:focus { outline: 2px solid var(--green); outline-offset: -1px; border-color: var(--green); }
 textarea { min-height: 70px; resize: vertical; }
 
 .primary-btn {
@@ -141,6 +142,55 @@ textarea { min-height: 70px; resize: vertical; }
 .message { margin: .75rem 0 0; font-size: .9rem; min-height: 1.2em; }
 .message.error { color: var(--danger); }
 .message.ok { color: var(--green); }
+
+/* notifications --------------------------------------------------------- */
+.hint { margin: 0; font-size: .8rem; color: var(--muted); }
+.panel > .hint { margin-bottom: 1rem; }
+
+.result-list { display: flex; flex-direction: column; gap: .25rem; }
+
+.result {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  padding: .5rem .6rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: .9rem;
+}
+.result:last-child { border-bottom: 0; }
+.result .who { font-weight: 600; }
+.result .num { color: var(--muted); font-family: ui-monospace, monospace; font-size: .85rem; }
+.result .why { color: var(--muted); margin-left: auto; text-align: right; }
+
+/* the status pill, coloured by outcome */
+.pill {
+  flex-shrink: 0;
+  min-width: 4.5rem;
+  text-align: center;
+  padding: .1rem .5rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  background: #f2f3f0;
+  color: var(--muted);
+}
+.pill.sent { background: #e3f0e8; color: var(--green); }
+.pill.dry_run { background: #f6efd9; color: var(--warn); }
+.pill.failed { background: #f7e4e1; color: var(--danger); }
+
+/* the banner above the report when Twilio is not configured */
+.dry-banner {
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--warn);
+  border-radius: 4px;
+  background: #fdf9ee;
+  color: var(--warn);
+  padding: .6rem .8rem;
+  margin-bottom: .75rem;
+  font-size: .85rem;
+}
 
 @media (max-width: 700px) {
   .app { flex-direction: column; }

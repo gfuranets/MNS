@@ -12,9 +12,19 @@ from sqlalchemy.orm import Session
 
 import auth
 import crud
+import notifications
 from database import get_db
 from models import User
-from schema import Token, UserCreate, UserLogin, UserOut
+from schema import (
+    NotificationCreate,
+    NotificationOut,
+    RecipientCount,
+    RecipientResult,
+    Token,
+    UserCreate,
+    UserLogin,
+    UserOut,
+)
 
 app = FastAPI(title="MNS - Medical Notification System")
 
@@ -28,7 +38,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 # --------------------------------------------------------------------------
 # user system
@@ -62,6 +71,79 @@ def me(user: User = Depends(auth.get_current_user)):
     Copy this Depends(...) line onto any future route that needs a login.
     """
     return user
+
+# --------------------------------------------------------------------------
+# notifications
+#
+# Both routes require a login. An unauthenticated send endpoint is an open
+# SMS relay - anyone who finds the URL could run up the Twilio bill.
+# --------------------------------------------------------------------------
+
+@app.get("/api/notifications/recipients", response_model=RecipientCount)
+def notification_recipients(
+    user: User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """How many users can be texted, so the page can say so before sending."""
+    return RecipientCount(recipients=crud.count_users_with_phone(db))
+
+
+@app.post("/api/notifications/send", response_model=NotificationOut)
+async def send_notification(
+    data: NotificationCreate,
+    user: User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Text every user who gave a phone number at signup.
+
+    The request carries only the message. Recipients come from the database,
+    and each number is normalized using the country that user registered with.
+
+    Numbers that cannot be normalized are skipped and reported by name - one
+    unusable number must not cost everyone else their message.
+    """
+    recipients = crud.users_with_phone(db)
+    if not recipients:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "No user has a phone number saved",
+        )
+
+    # Normalize first, so we know who is actually sendable before we call out.
+    results: list[RecipientResult] = []
+    sendable: list[tuple[int, str]] = []
+
+    for person in recipients:
+        display_name = f"{person.name} {person.surname}"
+        try:
+            number = notifications.normalize_phone(person.phone, person.country)
+        except ValueError as exc:
+            results.append(RecipientResult(
+                user_id=person.id, name=display_name, phone=person.phone,
+                status="skipped", detail=str(exc),
+            ))
+            continue
+        sendable.append((person.id, number))
+        results.append(RecipientResult(
+            user_id=person.id, name=display_name, phone=number, status="pending",
+        ))
+
+    outcomes = await notifications.send_batch([n for _, n in sendable], data.message)
+
+    by_user = {user_id: outcome for (user_id, _), outcome in zip(sendable, outcomes)}
+    for result in results:
+        outcome = by_user.get(result.user_id)
+        if outcome is not None:
+            result.status = outcome["status"]
+            result.detail = outcome["detail"]
+
+    return NotificationOut(
+        dry_run=not notifications.is_configured(),
+        sent=sum(1 for r in results if r.status in ("sent", "dry_run")),
+        skipped=sum(1 for r in results if r.status == "skipped"),
+        failed=sum(1 for r in results if r.status == "failed"),
+        results=results,
+    )
 
 
 # --------------------------------------------------------------------------

@@ -28,6 +28,9 @@
       <button class="nav-btn" data-page="vaccinations">
         💉 Vaccinations
       </button>
+      <button class="nav-btn" data-page="notify">
+        📣 Send Notification
+      </button>
     </nav>
 
     <div class="sidebar-footer">
@@ -76,6 +79,13 @@
           <h3>Vaccinations</h3>
           <p>Keep track of your vaccination history.</p>
           <span>View vaccinations →</span>
+        </div>
+
+        <div class="card" data-open="notify">
+          <div class="card-icon">📣</div>
+          <h3>Send Notification</h3>
+          <p>Text every patient who registered a phone number.</p>
+          <span>Write a message →</span>
         </div>
 
       </div>
@@ -257,6 +267,57 @@
             No vaccinations added yet.
           </p>
         </div>
+
+      </div>
+
+    </section>
+
+    <!-- SEND NOTIFICATION -->
+    <section id="notify" class="page">
+
+      <h1>Send a Notification</h1>
+
+      <p class="subtitle">
+        Write a message and text it to every patient
+        who gave a phone number when they registered.
+      </p>
+
+      <div class="panel">
+
+        <p class="hint" id="notify-count">
+          Checking who can be reached...
+        </p>
+
+        <form id="notify-form">
+
+          <div class="field">
+            <label for="notify-text">Message</label>
+
+            <textarea
+              id="notify-text"
+              maxlength="1000"
+              placeholder="Your blood test results are ready. Please contact the clinic."
+              required
+            ></textarea>
+
+            <p class="hint" id="notify-chars">1000 characters left</p>
+          </div>
+
+          <button type="submit" class="primary-btn" id="notify-send" disabled>
+            Send SMS
+          </button>
+
+          <p class="message" id="notify-status"></p>
+
+        </form>
+
+      </div>
+
+      <div class="panel" id="notify-report" hidden>
+
+        <h3>Delivery report</h3>
+
+        <div id="notify-results" class="result-list"></div>
 
       </div>
 

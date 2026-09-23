@@ -19,6 +19,12 @@ bcrypt
 PyJWT
 python-multipart
 
+# outbound HTTP, for the Twilio SMS calls
+httpx
+
 # config / validation
 python-dotenv
 email-validator
+
+# tests
+pytest

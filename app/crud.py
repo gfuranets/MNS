@@ -3,7 +3,7 @@
 Routes in main.py stay thin: they validate input, call a function from this
 file, and shape the response. No SQL in the route handlers.
 """
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 import auth
@@ -40,3 +40,23 @@ def create_user(db: Session, data: UserCreate) -> User:
     db.commit()
     db.refresh(user)  # reload so user.id and user.created_at are populated
     return user
+
+
+# --------------------------------------------------------------------------
+# notifications
+#
+# Phone numbers come from signup, so "who can be texted" is simply everyone
+# who filled that optional field in. Both queries share the same filter.
+# --------------------------------------------------------------------------
+
+_HAS_PHONE = (User.phone.is_not(None), User.phone != "")
+
+
+def users_with_phone(db: Session) -> list[User]:
+    """Every user who can receive an SMS, oldest account first."""
+    return list(db.scalars(select(User).where(*_HAS_PHONE).order_by(User.id)))
+
+
+def count_users_with_phone(db: Session) -> int:
+    """How many users have a phone number, without loading them all."""
+    return db.scalar(select(func.count(User.id)).where(*_HAS_PHONE)) or 0

@@ -50,6 +50,43 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+# --------------------------------------------------------------------------
+# notifications
+# --------------------------------------------------------------------------
+
+class RecipientCount(BaseModel):
+    """How many users can be texted at all - shown before you hit send."""
+    recipients: int
+
+
+class NotificationCreate(BaseModel):
+    """Body of POST /api/notifications/send. The message, and nothing else:
+    who receives it is decided by the phone numbers already in the database."""
+    message: str = Field(min_length=1, max_length=1000)
+
+
+class RecipientResult(BaseModel):
+    """What happened for one recipient.
+
+    status is one of: sent | dry_run | skipped | failed. A bad number for one
+    person never stops the others, so every recipient gets a line.
+    """
+    user_id: int
+    name: str
+    phone: str | None
+    status: str
+    detail: str | None = None
+
+
+class NotificationOut(BaseModel):
+    """What POST /api/notifications/send returns."""
+    dry_run: bool
+    sent: int
+    skipped: int
+    failed: int
+    results: list[RecipientResult]
+
+
 class AddBloodResults(BaseModel):
     """Placeholder - the blood sample feature is the next slice."""
     pass

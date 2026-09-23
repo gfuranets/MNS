@@ -20,6 +20,7 @@ StartSchool_2026/
     ├── schema.py       Pydantic request/response shapes
     ├── crud.py         database reads/writes
     ├── auth.py         password hashing + JWT
+    ├── notifications.py  phone normalization + Twilio
     └── static/         frontend (served by FastAPI)
         ├── index.html  dashboard
         ├── login.html
@@ -133,6 +134,31 @@ restarts the server whenever you save a file.
 | POST | `/api/signup` | — | create an account |
 | POST | `/api/login` | — | exchange email + password for a JWT |
 | GET | `/api/me` | Bearer | the logged-in user's profile |
+| GET | `/api/notifications/recipients` | Bearer | how many users have a phone number saved |
+| POST | `/api/notifications/send` | Bearer | text every user who has a phone number |
+
+### SMS notifications
+
+The **Send Notification** page takes a message body and nothing else. Phone
+numbers are collected at signup, so the recipients are simply every user who
+filled that optional field in:
+
+```json
+POST /api/notifications/send
+{ "message": "Your blood test results are ready." }
+```
+
+Numbers are normalized to E.164 before sending: a number that already starts
+with `+` is used as is, otherwise the country that user registered with supplies
+the dial code (`020123456` + Latvia → `+37120123456`). Anything that cannot be
+resolved is skipped and reported by name — one unusable number never costs the
+other recipients their message.
+
+**Twilio is optional.** Leave `TWILIO_SID`, `TWILIO_TOKEN` and `TWILIO_FROM`
+empty in `app/.env` and the feature runs in **dry run**: each message is logged
+to the server console and the page labels the result `dry run`, so nothing is
+actually sent. Fill all three in and it starts sending for real — no code
+change needed.
 
 Login returns a token. The frontend stores it and sends it on every later
 request as `Authorization: Bearer <token>`. To protect a new route, add the
