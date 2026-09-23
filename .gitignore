@@ -4,3 +4,6 @@ __pycache__/
 
 # secrets - never commit real credentials
 .env
+
+# user-uploaded photos/PDFs from the log
+app/uploads/

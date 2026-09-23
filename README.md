@@ -1,15 +1,19 @@
 # MNS — Medical Notification System
 
-FastAPI + SQLAlchemy + MySQL. Currently implemented: **the user system only**
-(signup, login, profile). Blood samples, notifications and the medical card
-come next.
+FastAPI + SQLAlchemy + MySQL. A preventive-health tracker: you tell it your
+birth year, sex, country and family risk factors, it works out which
+screenings, check-ups and vaccinations apply to you, tracks when you last did
+each one, and reminds you (in-app and by SMS) when something is overdue or
+coming up.
 
 ## Project layout
 
 ```
 StartSchool_2026/
-├── query.sql           schema — the `users` table
+├── query.sql           schema + the guideline catalog (safe to re-run)
+├── migrations/         one-off upgrades for databases made by an older query.sql
 ├── requirements.txt
+├── tests/              pytest - planner, reminder rules, phone numbers
 ├── venv/               (gitignored)
 └── app/
     ├── .env            DB credentials + JWT secret (gitignored)
@@ -20,13 +24,17 @@ StartSchool_2026/
     ├── schema.py       Pydantic request/response shapes
     ├── crud.py         database reads/writes
     ├── auth.py         password hashing + JWT
+    ├── planner.py      guidelines + log -> overdue / due soon / up to date
+    ├── reminders.py    background loop that sends reminders
     ├── notifications.py  phone normalization + Twilio
+    ├── uploads/        photos/PDFs attached to log entries (gitignored)
     └── static/         frontend (served by FastAPI)
-        ├── index.html  dashboard
+        ├── index.html  the app shell (one page, screens switch by URL hash)
         ├── login.html
-        ├── signup.html
+        ├── signup.html onboarding step 1
         ├── auth.js     shared: token storage + api() helper
-        ├── script.js   dashboard logic
+        ├── script.js   every screen: home, schedule, item detail, log,
+        │               prep, settings, inbox, passport, privacy, broadcast
         └── style.css
 ```
 
@@ -49,6 +57,18 @@ admin command below uses `sudo`, and why plain `mysql` as yourself is denied.
 cd ~/gkf/hackathons/StartSchool_2026
 sudo mysql < query.sql
 ```
+
+**Upgrading a database made by the old, user-system-only `query.sql`?** Run
+the migration once first, then `query.sql` again:
+
+```bash
+sudo mysql < migrations/001_health_tracker.sql   # reshapes `users` - run ONCE
+sudo mysql < query.sql                           # new tables + catalog
+```
+
+The migration keeps every account. It converts `birth_date` to `birth_year`
+and drops `surname`, `address` and `city`, which the new onboarding no longer
+asks for.
 
 ## 3. Create the application's database user
 
@@ -129,36 +149,90 @@ restarts the server whenever you save a file.
 
 ## API
 
-| Method | Path | Auth | Purpose |
+All routes except signup/login need `Authorization: Bearer <token>`.
+Full request/response shapes are at http://127.0.0.1:8000/docs.
+
+| Method | Path | Screen | Purpose |
 |---|---|---|---|
-| POST | `/api/signup` | — | create an account |
-| POST | `/api/login` | — | exchange email + password for a JWT |
-| GET | `/api/me` | Bearer | the logged-in user's profile |
-| GET | `/api/notifications/recipients` | Bearer | how many users have a phone number saved |
-| POST | `/api/notifications/send` | Bearer | text every user who has a phone number |
+| POST | `/api/signup` | Sign in | create an account (email, password, name, optional phone) |
+| POST | `/api/login` | Sign in | exchange email + password for a JWT |
+| GET | `/api/me` | — | your profile + settings; `profile_complete: false` → show onboarding |
+| PUT | `/api/me/profile` | Profile setup | birth year, sex, country, risk factors (+ "Other" text) |
+| PATCH | `/api/me/settings` | Settings | notifications style, push/SMS channels, language, phone |
+| GET | `/api/me/export` | Privacy & data | everything we hold about you, as JSON |
+| DELETE | `/api/me` | Privacy & data | delete the account, log and uploaded files |
+| GET | `/api/home` | Home | counts, the urgent card, "coming up", unread count |
+| GET | `/api/schedule?coverage=all\|state\|private` | Schedule | every applicable item, most urgent first |
+| GET | `/api/checkups/{id}` | Item detail | status, guideline text, more info, prep, your history |
+| POST | `/api/checkups/{id}/done` | Item detail | "Mark as done" (today, or a given date) |
+| POST | `/api/checkups/{id}/snooze` | Item detail | "Remind me later" (`{"days": 30}`) |
+| GET | `/api/checkup-types` | Log | catalog for the "What did you do?" picker |
+| GET/POST | `/api/log` | Log | list / add entries - backdating allowed, future dates rejected |
+| DELETE | `/api/log/{id}` | Log | remove an entry |
+| POST/GET | `/api/log/{id}/attachment` | Log | upload / download a photo or PDF (≤10 MB) |
+| GET | `/api/prep` | Prep | preparation guides for what is overdue or due soon |
+| GET | `/api/vaccinations` | Vaccination passport | each vaccine, every dose, next due |
+| GET | `/api/notifications` | inbox | in-app reminders, newest first, + unread count |
+| POST | `/api/notifications/{id}/read`, `/read-all` | inbox | mark read |
+| POST | `/api/notifications/check` | — | run the reminder check for yourself now |
+| GET | `/api/notifications/recipients` | Send Notification | how many users have a phone number |
+| POST | `/api/notifications/send` | Send Notification | broadcast an SMS to everyone with a number |
 
-### SMS notifications
+### How the schedule is worked out
 
-The **Send Notification** page takes a message body and nothing else. Phone
-numbers are collected at signup, so the recipients are simply every user who
-filled that optional field in:
+`checkup_types` is the guideline catalog, seeded by `query.sql`. Each row says
+how often (`interval_months`) and for whom (`min_age`, `max_age`, `sex`,
+`country`). A `risk_factor` either makes the item exist only for people who
+ticked that box (`risk_only`), or starts it earlier and repeats it more often
+(`risk_min_age`, `risk_interval_months`) — e.g. cholesterol every 5 years from
+40, but yearly from 20 if heart disease runs in the family.
 
-```json
-POST /api/notifications/send
-{ "message": "Your blood test results are ready." }
-```
+`planner.py` combines that with your log: due date = last done + interval.
+Overdue if that is past, due soon within 30 days, up to date otherwise. An item
+never logged counts as due today — "no record yet", not "overdue".
+
+> The seeded guidelines are **demo data**. They have not been reviewed by a
+> clinician — check them against vmnvd.gov.lv before relying on them. Edit
+> `query.sql` and re-run it to change them; the insert is an upsert.
+
+### Reminders
+
+`reminders.py` runs in the background (started with the server) every
+`REMINDER_EVERY_MINUTES` (default 60, `0` = off). For each user it looks at
+the schedule and sends a reminder for items that are overdue or coming up:
+
+| Setting | Reminds about | Repeats at most |
+|---|---|---|
+| `off` | nothing | — |
+| `gentle` (default) | overdue, and due within 7 days | once a month per item |
+| `frequent` | overdue, and due within 30 days | once a week per item |
+
+- **push** → a row in `notifications`, shown by `GET /api/notifications`
+- **sms** → one combined text per run (not one per item)
+- **"Remind me later"** silences an item completely until the snooze ends;
+  logging the item clears the snooze.
+
+Every reminder is stored in `notifications`, and the cooldown is read from
+that same table, so restarting the server never sends a second batch.
+
+### SMS
 
 Numbers are normalized to E.164 before sending: a number that already starts
-with `+` is used as is, otherwise the country that user registered with supplies
-the dial code (`020123456` + Latvia → `+37120123456`). Anything that cannot be
-resolved is skipped and reported by name — one unusable number never costs the
-other recipients their message.
+with `+` is used as is, otherwise the user's country supplies the dial code
+(`020123456` + Latvia → `+37120123456`). Anything that cannot be resolved is
+skipped and reported — one unusable number never costs the other recipients
+their message.
 
 **Twilio is optional.** Leave `TWILIO_SID`, `TWILIO_TOKEN` and `TWILIO_FROM`
-empty in `app/.env` and the feature runs in **dry run**: each message is logged
-to the server console and the page labels the result `dry run`, so nothing is
-actually sent. Fill all three in and it starts sending for real — no code
-change needed.
+empty in `app/.env` and SMS runs in **dry run**: each message is logged to the
+server console and recorded with status `dry_run`, so nothing is actually
+sent. Fill all three in and it starts sending for real — no code change needed.
+
+## Tests
+
+```bash
+venv/bin/python3 -m pytest
+```
 
 Login returns a token. The frontend stores it and sends it on every later
 request as `Authorization: Bearer <token>`. To protect a new route, add the
@@ -180,7 +254,8 @@ mysql -u mns_user -p MNS                    # as the app's user
 SHOW DATABASES;
 USE MNS;
 SHOW TABLES;
-SELECT id, email, name, surname FROM users;
+SELECT id, email, name, birth_year, country FROM users;
+SELECT * FROM notifications ORDER BY id DESC LIMIT 20;  # what reminders went out
 DELETE FROM users WHERE email = 'test@example.com';   # remove a test account
 DROP DATABASE MNS;                                    # start over, then rerun step 2
 ```

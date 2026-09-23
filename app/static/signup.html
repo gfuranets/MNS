@@ -4,81 +4,58 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Create account - Health Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="auth">
-  <div class="logo">💚 Health Companion</div>
+<div class="phone auth-page">
+  <header class="topbar">
+    <a class="icon-btn" href="login.html" aria-label="Back to sign in">←</a>
+    <h1>Create your account</h1>
+  </header>
 
-  <div class="panel">
-    <h1>Create account</h1>
-    <p class="subtitle">Your details are stored so reminders can reach you.</p>
+  <main class="content">
+    <div class="steps" aria-label="Step 1 of 3">
+      <i class="on"></i><i></i><i></i><span>Step 1 of 3</span>
+    </div>
 
     <form id="signup-form">
-      <div class="field">
-        <label for="email">Email</label>
-        <input type="email" id="email" required autocomplete="email">
+      <label class="box">
+        <span class="cap">First name</span>
+        <input type="text" id="name" required maxlength="40" autocomplete="given-name">
+      </label>
+      <label class="box">
+        <span class="cap">Email</span>
+        <input type="email" id="email" required autocomplete="email" placeholder="you@example.com">
+      </label>
+      <label class="box">
+        <span class="cap">Password</span>
+        <input type="password" id="password" required minlength="8" maxlength="72" autocomplete="new-password">
+      </label>
+      <p class="field-note">At least 8 characters.</p>
+      <label class="box">
+        <span class="cap">Phone (optional)</span>
+        <input type="tel" id="phone" maxlength="20" autocomplete="tel" placeholder="20 123 456">
+      </label>
+      <p class="field-note">Only used for text reminders, and only if you turn them on.</p>
+
+      <div class="form-foot">
+        <button type="submit" class="btn primary">Continue</button>
       </div>
-
-      <div class="field">
-        <label for="password">Password</label>
-        <input type="password" id="password" required minlength="8"
-               autocomplete="new-password">
-      </div>
-
-      <div class="form-grid">
-        <div class="field">
-          <label for="name">First name</label>
-          <input type="text" id="name" required maxlength="40">
-        </div>
-
-        <div class="field">
-          <label for="surname">Surname</label>
-          <input type="text" id="surname" required maxlength="40">
-        </div>
-
-        <div class="field">
-          <label for="birth_date">Date of birth</label>
-          <input type="date" id="birth_date" required>
-        </div>
-
-        <div class="field">
-          <label for="phone">Phone (optional)</label>
-          <input type="tel" id="phone" maxlength="20">
-        </div>
-      </div>
-
-      <div class="field">
-        <label for="address">Address</label>
-        <input type="text" id="address" required maxlength="50">
-      </div>
-
-      <div class="form-grid">
-        <div class="field">
-          <label for="city">City</label>
-          <input type="text" id="city" required maxlength="20">
-        </div>
-
-        <div class="field">
-          <label for="country">Country</label>
-          <input type="text" id="country" required maxlength="20">
-        </div>
-      </div>
-
-      <button type="submit" class="primary-btn">Create account</button>
       <p class="message" id="message"></p>
     </form>
 
-    <p class="auth-alt">Already have an account? <a href="login.html">Log in</a></p>
-  </div>
+    <p class="auth-alt">Already have an account? <a href="login.html">Sign in</a></p>
+  </main>
 </div>
 
 <script src="auth.js"></script>
 <script>
   const form = document.getElementById("signup-form");
   const message = document.getElementById("message");
-  const value = (id) => document.getElementById(id).value;
+  const value = (id) => document.getElementById(id).value.trim();
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -86,24 +63,16 @@
     button.disabled = true;
     showMessage(message, "");
 
-    const credentials = { email: value("email"), password: value("password") };
+    const credentials = { email: value("email"), password: document.getElementById("password").value };
 
     try {
       await api("/api/signup", {
         method: "POST",
-        body: {
-          ...credentials,
-          name: value("name"),
-          surname: value("surname"),
-          birth_date: value("birth_date"),
-          address: value("address"),
-          city: value("city"),
-          country: value("country"),
-          phone: value("phone") || null,
-        },
+        body: { ...credentials, name: value("name"), phone: value("phone") || null },
       });
 
       // Signing up does not return a token, so log in straight away.
+      // index.html sees the empty profile and continues with step 2.
       const session = await api("/api/login", { method: "POST", body: credentials });
       token.set(session.access_token);
       window.location.replace("index.html");

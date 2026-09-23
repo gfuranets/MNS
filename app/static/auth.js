@@ -16,26 +16,43 @@ function readError(detail, status) {
   if (typeof detail === "string") return detail;
   if (Array.isArray(detail)) {
     return detail
-      .map((e) => `${(e.loc || []).slice(1).join(".")}: ${e.msg}`)
+      .map((e) => `${(e.loc || []).slice(1).join(".")}: ${e.msg.replace(/^Value error, /, "")}`)
       .join("; ");
   }
   return `Request failed (${status})`;
 }
 
-async function api(path, { method = "GET", body } = {}) {
-  const headers = { "Content-Type": "application/json" };
+/* One wrapper for every API call.
+     body - sent as JSON
+     form - a FormData, sent as multipart (file uploads)
+     raw  - return the Response itself (file downloads)
+   A 401 on a logged-in request means the token expired: back to login. */
+async function api(path, { method = "GET", body, form, raw = false } = {}) {
+  const headers = {};
   const saved = token.get();
   if (saved) headers.Authorization = `Bearer ${saved}`;
 
-  const res = await fetch(path, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let payload;
+  if (form) {
+    payload = form;   // the browser sets the multipart boundary itself
+  } else if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    payload = JSON.stringify(body);
+  }
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(readError(data.detail, res.status));
-  return data;
+  const res = await fetch(path, { method, headers, body: payload });
+
+  if (res.status === 401 && saved) {
+    logOut();
+    throw new Error("Your session expired. Log in again.");
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(readError(data.detail, res.status));
+  }
+  if (raw) return res;
+  if (res.status === 204) return null;
+  return res.json();
 }
 
 function showMessage(el, text, kind = "error") {
