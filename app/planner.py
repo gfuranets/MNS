@@ -1,24 +1,27 @@
-"""planner.py - turns a profile and a log into "what is due when".
+"""planner.py - turns a profile, a log and the user's own tasks into
+"what is due when".
 
 Pure functions only: no database, no HTTP. crud.py loads the rows and hands
-them in; the home page, the schedule, the item detail page and the reminder
-loop all read the same answer from here, so they can never disagree.
+them in; the home page, the schedule, the calendar and the reminder loop all
+read the same answer from here, so they can never disagree.
 
-The rules:
+Two kinds of item end up in one list:
 
-  * A guideline applies if the user's age, sex, country and risk factors fit it.
-    Anything the profile does not say yet (e.g. no birth year) leaves out the
-    guidelines that depend on it rather than guessing.
-  * due_on = last time it was done + the interval. Never logged = due today:
-    we do not know it was ever done, but calling a brand-new user "overdue" on
-    everything would be alarming and probably wrong.
-  * overdue   - due_on is in the past
-    due_soon  - due within DUE_SOON_DAYS
-    up_to_date - otherwise
+  guideline - a recommended check from the catalog. It applies if the user's
+              age, sex, country and risk factors fit. due_on = last time it
+              was logged + the interval; never logged = due today (we do not
+              know it was ever done, but calling everything "overdue" on day
+              one would be alarming and probably wrong).
+  task      - a pending occurrence of something the user added themselves.
+              due_on is simply the date they gave.
+
+  overdue    - due_on is in the past            (shown as "late")
+  due_soon   - due within DUE_SOON_DAYS          (shown as "upcoming")
+  up_to_date - otherwise
 """
 import calendar
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 DUE_SOON_DAYS = 30
 
@@ -27,19 +30,28 @@ STATUS_ORDER = {"overdue": 0, "due_soon": 1, "up_to_date": 2}
 
 
 @dataclass
-class ScheduleItem:
-    checkup: object              # models.CheckupType (kept loose so tests can use stand-ins)
+class Item:
+    kind: str                    # guideline | task
+    id: int                      # checkup_type id, or task_event id
+    name: str
+    category: str
     status: str                  # overdue | due_soon | up_to_date
-    interval_months: int         # after risk-factor adjustment
-    last_done: date | None
     due_on: date
-    days: int                    # due_on - today: negative = overdue by, positive = due in
-    snoozed_until: date | None   # "remind me later" still in effect
+    days: int                    # due_on - today: negative = overdue by
+    last_done: date | None
+    interval_months: int | None = None   # guideline, after risk adjustment
+    task_id: int | None = None
+    coverage: str | None = None
+    source: object = None        # the CheckupType or TaskEvent it came from
 
     @property
-    def snoozed(self) -> bool:
-        return self.snoozed_until is not None
+    def key(self) -> tuple[str, int]:
+        return (self.kind, self.id)
 
+
+# --------------------------------------------------------------------------
+# dates
+# --------------------------------------------------------------------------
 
 def add_months(d: date, months: int) -> date:
     """date + N calendar months, clamping the day (Jan 31 + 1 month = Feb 28/29)."""
@@ -48,11 +60,37 @@ def add_months(d: date, months: int) -> date:
     return date(year, month, min(d.day, calendar.monthrange(year, month)[1]))
 
 
-def age_in(birth_year: int, today: date) -> int:
-    """Age this calendar year. We only store the year, so this can be one too
-    high before the birthday - close enough for "ages 25-65" guidelines."""
-    return today.year - birth_year
+def add_interval(d: date, every: int, unit: str) -> date:
+    """date + "every 2 weeks" and the like - the repeat rule of a task."""
+    if unit == "day":
+        return d + timedelta(days=every)
+    if unit == "week":
+        return d + timedelta(weeks=every)
+    if unit == "month":
+        return add_months(d, every)
+    if unit == "year":
+        return add_months(d, 12 * every)
+    raise ValueError(f"unknown repeat unit {unit!r}")
 
+
+def age_on(birth_date: date, today: date) -> int:
+    """Whole years, counting the birthday itself."""
+    before_birthday = (today.month, today.day) < (birth_date.month, birth_date.day)
+    return today.year - birth_date.year - before_birthday
+
+
+def status_for(due_on: date, today: date) -> str:
+    days = (due_on - today).days
+    if days < 0:
+        return "overdue"
+    if days <= DUE_SOON_DAYS:
+        return "due_soon"
+    return "up_to_date"
+
+
+# --------------------------------------------------------------------------
+# guidelines
+# --------------------------------------------------------------------------
 
 def _same_country(a: str | None, b: str | None) -> bool:
     return (a or "").strip().casefold() == (b or "").strip().casefold()
@@ -80,9 +118,9 @@ def interval_for(checkup, user, risks: set[str], today: date) -> int | None:
         min_age = checkup.risk_min_age
 
     if min_age is not None or checkup.max_age is not None:
-        if user.birth_year is None:
+        if user.birth_date is None:
             return None
-        age = age_in(user.birth_year, today)
+        age = age_on(user.birth_date, today)
         if min_age is not None and age < min_age:
             return None
         if checkup.max_age is not None and age > checkup.max_age:
@@ -93,26 +131,12 @@ def interval_for(checkup, user, risks: set[str], today: date) -> int | None:
     return checkup.interval_months
 
 
-def status_for(due_on: date, today: date) -> str:
-    days = (due_on - today).days
-    if days < 0:
-        return "overdue"
-    if days <= DUE_SOON_DAYS:
-        return "due_soon"
-    return "up_to_date"
-
-
-def build_schedule(
-    user,
-    checkups: list,
-    last_done: dict[int, date],
-    snoozes: dict[int, date],
-    today: date,
-) -> list[ScheduleItem]:
-    """Every guideline that applies to `user`, most urgent first.
+def guideline_items(
+    user, checkups: list, last_done: dict[int, date], today: date, language: str = "en",
+) -> list[Item]:
+    """Every recommended check that applies to `user`.
 
     last_done - checkup_type_id -> most recent done_on from the log
-    snoozes   - checkup_type_id -> "remind me later" date (expired ones ignored)
     """
     risks = user.risk_codes
     items = []
@@ -124,41 +148,43 @@ def build_schedule(
 
         done = last_done.get(checkup.id)
         due_on = add_months(done, interval) if done else today
-        snooze = snoozes.get(checkup.id)
+        name = (getattr(checkup, "name_lv", None) if language == "lv" else None) or checkup.name
 
-        items.append(ScheduleItem(
-            checkup=checkup,
-            status=status_for(due_on, today),
-            interval_months=interval,
-            last_done=done,
-            due_on=due_on,
-            days=(due_on - today).days,
-            snoozed_until=snooze if snooze and snooze > today else None,
+        items.append(Item(
+            kind="guideline", id=checkup.id, name=name, category=checkup.category,
+            status=status_for(due_on, today), due_on=due_on,
+            days=(due_on - today).days, last_done=done,
+            interval_months=interval, coverage=checkup.coverage, source=checkup,
         ))
-
-    items.sort(key=lambda i: (STATUS_ORDER[i.status], i.due_on, i.checkup.name))
     return items
 
 
-def describe(item: ScheduleItem) -> str:
-    """The one-line status under an item's name: "due in 12 days" and so on."""
-    if item.last_done is None:
-        return "no record yet"
-    if item.status == "overdue":
-        return f"overdue by {_span(-item.days)}"
-    if item.days == 0:
-        return "due today"
-    if item.status == "due_soon":
-        return f"due in {_span(item.days)}"
-    return f"next due {item.due_on:%b %Y}"
+# --------------------------------------------------------------------------
+# the user's own tasks
+# --------------------------------------------------------------------------
+
+def task_items(pending_events: list, last_done: dict[int, date], today: date) -> list[Item]:
+    """One item per pending task occurrence.
+
+    last_done - task_id -> most recent done_on of that task
+    """
+    return [
+        Item(
+            kind="task", id=e.id, name=e.task.title, category=e.task.category,
+            status=status_for(e.due_on, today), due_on=e.due_on,
+            days=(e.due_on - today).days, last_done=last_done.get(e.task_id),
+            task_id=e.task_id, source=e,
+        )
+        for e in pending_events
+    ]
 
 
-def _span(days: int) -> str:
-    """12 days / 3 weeks / 4 months / 2 years - whichever reads naturally."""
-    if days < 14:
-        return f"{days} day{'s' if days != 1 else ''}"
-    if days < 60:
-        return f"{days // 7} weeks"
-    if days < 730:
-        return f"{days // 30} months"
-    return f"{days // 365} years"
+def sort_items(items: list[Item]) -> list[Item]:
+    return sorted(items, key=lambda i: (STATUS_ORDER[i.status], i.due_on, i.name))
+
+
+def next_occurrence(due_on: date, every: int | None, unit: str | None) -> date | None:
+    """The date after `due_on` for a repeating task, or None for manual dates."""
+    if every is None or unit is None:
+        return None
+    return add_interval(due_on, every, unit)

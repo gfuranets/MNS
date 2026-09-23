@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Health Companion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,22 +14,15 @@
      hash (#/home, #/schedule, #/checkup/3 ...) into #view. -->
 <div class="phone">
   <header class="topbar" id="topbar"></header>
-
-  <main class="content" id="view">
-    <p class="loading">Loading…</p>
-  </main>
-
-  <nav class="tabbar" id="tabbar" aria-label="Main">
-    <a href="#/home" data-tab="home">Home</a>
-    <a href="#/schedule" data-tab="schedule">Schedule</a>
-    <a href="#/log" data-tab="log">Log</a>
-    <a href="#/prep" data-tab="prep">Prep</a>
-    <a href="#/settings" data-tab="settings">Settings</a>
-  </nav>
+  <main class="content" id="view"></main>
+  <nav class="tabbar" id="tabbar" aria-label="Main" hidden></nav>
 </div>
 
+<div id="modal-root"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="i18n.js"></script>
+<script src="icons.js"></script>
 <script src="auth.js"></script>
 <script src="script.js"></script>
 

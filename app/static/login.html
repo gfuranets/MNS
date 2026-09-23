@@ -3,45 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign in - Health Companion</title>
+  <title>Health Companion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="phone auth-page">
-  <header class="topbar"><h1>Sign in</h1></header>
+  <header class="topbar">
+    <h1 data-i18n="login.title"></h1>
+    <select id="lang" class="lang-pick" aria-label="Language"></select>
+  </header>
 
   <main class="content">
-    <div class="auth-mark">
-      <div class="logo">HC</div>
-      <p class="muted">Know what's due. Show up ready.</p>
+    <div class="brand">
+      <div class="logo" id="logo"></div>
+      <h2 data-i18n="app.name"></h2>
+      <p class="muted" data-i18n="app.tagline"></p>
     </div>
 
     <form id="login-form">
-      <label class="box">
-        <span class="cap">Email</span>
+      <label class="field">
+        <span data-i18n="login.email"></span>
         <input type="email" id="email" required autocomplete="email" placeholder="you@example.com">
       </label>
-      <label class="box">
-        <span class="cap">Password</span>
+      <label class="field">
+        <span data-i18n="login.password"></span>
         <input type="password" id="password" required autocomplete="current-password">
       </label>
 
       <div class="form-foot">
-        <button type="submit" class="btn primary">Sign in</button>
+        <button type="submit" class="btn primary" data-i18n="login.submit"></button>
       </div>
       <p class="message" id="message"></p>
     </form>
 
-    <p class="auth-alt">New here? <a href="signup.html">Create an account</a></p>
-    <p class="auth-foot">Your health data is never sold.</p>
+    <p class="auth-alt"><span data-i18n="login.new"></span> <a href="signup.html" data-i18n="login.create"></a></p>
+    <p class="auth-foot" data-i18n="login.privacy"></p>
   </main>
 </div>
 
+<script src="i18n.js"></script>
+<script src="icons.js"></script>
 <script src="auth.js"></script>
 <script>
+  // Language first: it is visible before login, as the design asks.
+  const picker = document.getElementById("lang");
+  for (const [code, label] of Object.entries(LANGS)) picker.add(new Option(label, code, false, code === lang));
+  picker.addEventListener("change", () => { setLang(picker.value); applyI18n(); });
+  document.getElementById("logo").append(icon("heart"));
+  applyI18n();
+
   const form = document.getElementById("login-form");
   const message = document.getElementById("message");
 

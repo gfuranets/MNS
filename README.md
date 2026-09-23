@@ -1,19 +1,28 @@
 # MNS — Medical Notification System
 
-FastAPI + SQLAlchemy + MySQL. A preventive-health tracker: you tell it your
-birth year, sex, country and family risk factors, it works out which
-screenings, check-ups and vaccinations apply to you, tracks when you last did
-each one, and reminds you (in-app and by SMS) when something is overdue or
-coming up.
+FastAPI + SQLAlchemy + MySQL, with a mobile-first web frontend in English and
+Latvian. A preventive-health companion:
+
+- **Recommended checks.** From your birth date, gender, country and the
+  conditions you or your family have, it works out which screenings,
+  check-ups and vaccinations apply to you, and when each is due.
+- **Your own plan.** Add appointments, vaccine shots, tests... repeating
+  ("every 2 weeks") or on dates you pick, with the doctor's name and specialty.
+- **Reminders that don't give up.** Every day until an item is marked done,
+  in the app (a pop-up you have to Accept) and/or by SMS.
+- **Preparation guides.** A searchable library ("gastroscopy": stop eating,
+  take your passport, arrange a lift) with a checklist and timed reminders.
+- **Log and vaccination passport.** Everything done or missed, by category,
+  with photos/PDFs of results.
 
 ## Project layout
 
 ```
 StartSchool_2026/
-├── query.sql           schema + the guideline catalog (safe to re-run)
+├── query.sql           schema + seed data: guidelines, procedure library (safe to re-run)
 ├── migrations/         one-off upgrades for databases made by an older query.sql
 ├── requirements.txt
-├── tests/              pytest - planner, reminder rules, phone numbers
+├── tests/              pytest - planner, reminder rules, LV grammar, phone numbers
 ├── venv/               (gitignored)
 └── app/
     ├── .env            DB credentials + JWT secret (gitignored)
@@ -24,18 +33,20 @@ StartSchool_2026/
     ├── schema.py       Pydantic request/response shapes
     ├── crud.py         database reads/writes
     ├── auth.py         password hashing + JWT
-    ├── planner.py      guidelines + log -> overdue / due soon / up to date
-    ├── reminders.py    background loop that sends reminders
+    ├── planner.py      guidelines + your tasks + log -> late / upcoming / up to date
+    ├── reminders.py    background loop: daily reminders + preparation reminders
+    ├── texts.py        reminder / SMS wording in EN and LV
     ├── notifications.py  phone normalization + Twilio
     ├── uploads/        photos/PDFs attached to log entries (gitignored)
     └── static/         frontend (served by FastAPI)
-        ├── index.html  the app shell (one page, screens switch by URL hash)
-        ├── login.html
-        ├── signup.html onboarding step 1
-        ├── auth.js     shared: token storage + api() helper
-        ├── script.js   every screen: home, schedule, item detail, log,
-        │               prep, settings, inbox, passport, privacy, broadcast
-        └── style.css
+        ├── login.html  sign in, language picker
+        ├── signup.html onboarding step 1 (consent and profile follow in the app)
+        ├── index.html  the app shell - screens switch by URL hash
+        ├── script.js   every screen
+        ├── i18n.js     every UI string in EN and LV, dates, Latvian number grammar
+        ├── icons.js    inline SVG icons
+        ├── auth.js     token storage + api() helper
+        └── style.css   design tokens from design_test
 ```
 
 ## 1. Install MySQL
@@ -58,17 +69,19 @@ cd ~/gkf/hackathons/StartSchool_2026
 sudo mysql < query.sql
 ```
 
-**Upgrading a database made by the old, user-system-only `query.sql`?** Run
-the migration once first, then `query.sql` again:
+**Upgrading an existing database?** Run the migrations you have not run yet,
+in order, each exactly once, then `query.sql` again for the new seed data:
 
 ```bash
-sudo mysql < migrations/001_health_tracker.sql   # reshapes `users` - run ONCE
-sudo mysql < query.sql                           # new tables + catalog
+sudo mysql < migrations/001_health_tracker.sql      # only if you still have users.birth_date + address/city
+sudo mysql < migrations/002_plans_and_procedures.sql
+sudo mysql < query.sql
 ```
 
-The migration keeps every account. It converts `birth_date` to `birth_year`
-and drops `surname`, `address` and `city`, which the new onboarding no longer
-asks for.
+Both keep every account. 002 turns `birth_year` into a birth date of
+1 January that year (fix it in Profile), maps the old family risk factors to
+the new personal/family ones, and drops the snooze table: reminders now
+repeat daily until done. Existing users are shown the consent screen once.
 
 ## 3. Create the application's database user
 
@@ -154,79 +167,92 @@ Full request/response shapes are at http://127.0.0.1:8000/docs.
 
 | Method | Path | Screen | Purpose |
 |---|---|---|---|
-| POST | `/api/signup` | Sign in | create an account (email, password, name, optional phone) |
-| POST | `/api/login` | Sign in | exchange email + password for a JWT |
-| GET | `/api/me` | — | your profile + settings; `profile_complete: false` → show onboarding |
-| PUT | `/api/me/profile` | Profile setup | birth year, sex, country, risk factors (+ "Other" text) |
-| PATCH | `/api/me/settings` | Settings | notifications style, push/SMS channels, language, phone |
-| GET | `/api/me/export` | Privacy & data | everything we hold about you, as JSON |
-| DELETE | `/api/me` | Privacy & data | delete the account, log and uploaded files |
-| GET | `/api/home` | Home | counts, the urgent card, "coming up", unread count |
-| GET | `/api/schedule?coverage=all\|state\|private` | Schedule | every applicable item, most urgent first |
-| GET | `/api/checkups/{id}` | Item detail | status, guideline text, more info, prep, your history |
-| POST | `/api/checkups/{id}/done` | Item detail | "Mark as done" (today, or a given date) |
-| POST | `/api/checkups/{id}/snooze` | Item detail | "Remind me later" (`{"days": 30}`) |
-| GET | `/api/checkup-types` | Log | catalog for the "What did you do?" picker |
-| GET/POST | `/api/log` | Log | list / add entries - backdating allowed, future dates rejected |
+| POST | `/api/signup` | Sign up 1/3 | name, surname, email, password, phone?, language |
+| POST | `/api/login` | Sign in | email + password -> JWT |
+| GET | `/api/me` | — | you; `profile_complete: false` = onboarding unfinished |
+| POST | `/api/me/consent` | Sign up 2/3 | agree to the plain-language data notice |
+| PUT | `/api/me/profile` | Sign up 3/3, Profile | birth date, gender, country, personal/family conditions |
+| PATCH | `/api/me/settings` | Profile > Reminders | language, daily reminders on/off, how early, push/SMS, phone |
+| GET / DELETE | `/api/me/export`, `/api/me` | Privacy | download everything / delete the account |
+| GET | `/api/home` | Home | pop-up, status strip counts, coming up, preparations |
+| GET | `/api/schedule?source=all\|recommended\|mine` | Schedule | every item with last done and due date |
+| GET | `/api/calendar?month=2026-09` | Schedule | everything dated in a month (due, done, missed, appointments) |
+| GET | `/api/checkups/{id}` | Item | guideline, source, more info, prep, your history |
+| POST | `/api/checkups/{id}/done` | Item | mark done (today or a past date) - clears its reminders |
+| GET / POST | `/api/tasks` | Add | your own tasks: repeating or manual dates, doctor, specialty |
+| GET / DELETE | `/api/tasks/{id}` | Task | one task with all its dates |
+| POST | `/api/tasks/{id}/dates` | Task | add a manual date |
+| POST | `/api/task-events/{id}/done`, `/missed` | Task, pop-up | finish one date; a repeating task gets its next one |
+| GET | `/api/categories` | Log | categories you have anything in |
+| GET / POST | `/api/log?category=` | Log | done + missed, newest first / "add your own" entry |
 | DELETE | `/api/log/{id}` | Log | remove an entry |
-| POST/GET | `/api/log/{id}/attachment` | Log | upload / download a photo or PDF (≤10 MB) |
-| GET | `/api/prep` | Prep | preparation guides for what is overdue or due soon |
-| GET | `/api/vaccinations` | Vaccination passport | each vaccine, every dose, next due |
-| GET | `/api/notifications` | inbox | in-app reminders, newest first, + unread count |
-| POST | `/api/notifications/{id}/read`, `/read-all` | inbox | mark read |
-| POST | `/api/notifications/check` | — | run the reminder check for yourself now |
-| GET | `/api/notifications/recipients` | Send Notification | how many users have a phone number |
-| POST | `/api/notifications/send` | Send Notification | broadcast an SMS to everyone with a number |
+| POST / GET | `/api/log/{id}/attachment` | Log | upload / download a photo or PDF (≤10 MB) |
+| GET | `/api/vaccinations` | Passport | each vaccine: doses, renew-by date |
+| GET | `/api/procedures?q=` | Info | search the preparation library (EN or LV) |
+| GET | `/api/procedures/{id}` | Info | guide + checklist + your plans for it |
+| POST | `/api/procedures/{id}/plans` | Info | "Set reminder": appointment time + which lines to remind about |
+| GET | `/api/prep-plans` | Home, Info | upcoming preparations |
+| PATCH / DELETE | `/api/prep-items/{id}`, `/api/prep-plans/{id}` | Info | tick a checklist line / remove a plan |
+| GET | `/api/reminders/pending` | pop-up | reminders waiting for Accept |
+| POST | `/api/notifications/{id}/accept`, `/accept-all` | pop-up, inbox | accept |
+| GET | `/api/notifications` | Inbox | every in-app reminder |
+| POST | `/api/notifications/check` | Profile > Reminders | run the reminder check for yourself now |
+| GET / POST | `/api/notifications/recipients`, `/send` | Message all patients | SMS broadcast |
+
+The AI screen is interface only for now - there is no backend call yet.
 
 ### How the schedule is worked out
 
 `checkup_types` is the guideline catalog, seeded by `query.sql`. Each row says
 how often (`interval_months`) and for whom (`min_age`, `max_age`, `sex`,
-`country`). A `risk_factor` either makes the item exist only for people who
-ticked that box (`risk_only`), or starts it earlier and repeats it more often
-(`risk_min_age`, `risk_interval_months`) — e.g. cholesterol every 5 years from
-40, but yearly from 20 if heart disease runs in the family.
+`country`). A `risk_factor` (cancer, diabetes, heart) either makes the item
+exist only for people who have it personally or in the family (`risk_only`),
+or starts it earlier and repeats it more often (`risk_min_age`,
+`risk_interval_months`) - e.g. cholesterol every 5 years from 40, but yearly
+from 20 with heart disease in the family.
 
-`planner.py` combines that with your log: due date = last done + interval.
-Overdue if that is past, due soon within 30 days, up to date otherwise. An item
-never logged counts as due today — "no record yet", not "overdue".
+`planner.py` merges those with your own tasks: due date = last logged +
+interval, or the date you gave. Late if that is past, upcoming within 30 days,
+up to date otherwise. A recommended check never logged counts as due today -
+"no record yet", not "late".
 
-> The seeded guidelines are **demo data**. They have not been reviewed by a
-> clinician — check them against vmnvd.gov.lv before relying on them. Edit
-> `query.sql` and re-run it to change them; the insert is an upsert.
+> The seeded guidelines and preparation steps are **demo content**. They have
+> not been reviewed by a clinician, and the Latvian texts have not been
+> proofread by a native speaker. Edit `query.sql` and re-run it to change
+> them; the inserts are upserts.
 
 ### Reminders
 
-`reminders.py` runs in the background (started with the server) every
-`REMINDER_EVERY_MINUTES` (default 60, `0` = off). For each user it looks at
-the schedule and sends a reminder for items that are overdue or coming up:
+`reminders.py` runs in the background every `REMINDER_EVERY_MINUTES`
+(default 5, `0` = off) and does two things:
 
-| Setting | Reminds about | Repeats at most |
-|---|---|---|
-| `off` | nothing | — |
-| `gentle` (default) | overdue, and due within 7 days | once a month per item |
-| `frequent` | overdue, and due within 30 days | once a week per item |
+- **Daily reminders.** Anything late, or due within the user's "start
+  reminding" window (default 1 week), gets a reminder **once a day, every
+  day, until it is marked done**, from `REMINDER_SEND_HOUR` (default 9:00).
+  In the app it is a pop-up with Accept / Mark as done / Not now; until
+  accepted it keeps popping up. SMS is one combined text a day.
+- **Preparation reminders.** Checklist lines you asked to be reminded about
+  go out at their time (e.g. "stop eating" 8 hours before), once. If that
+  time has already passed when you set it, they go out straight away.
 
-- **push** → a row in `notifications`, shown by `GET /api/notifications`
-- **sms** → one combined text per run (not one per item)
-- **"Remind me later"** silences an item completely until the snooze ends;
-  logging the item clears the snooze.
-
-Every reminder is stored in `notifications`, and the cooldown is read from
-that same table, so restarting the server never sends a second batch.
+Marking an item done deletes its waiting reminders and shows "Great job
+taking care of yourself!". Every reminder is stored in `notifications`, and
+"already reminded today?" is read from that table, so restarting the server
+never sends a second batch. Reminder texts are written in the user's language
+at send time (`texts.py`).
 
 ### SMS
 
 Numbers are normalized to E.164 before sending: a number that already starts
 with `+` is used as is, otherwise the user's country supplies the dial code
-(`020123456` + Latvia → `+37120123456`). Anything that cannot be resolved is
-skipped and reported — one unusable number never costs the other recipients
-their message.
+(`020123456` + Latvia -> `+37120123456`). Anything that cannot be resolved is
+skipped and reported - one unusable number never costs the others their
+message.
 
 **Twilio is optional.** Leave `TWILIO_SID`, `TWILIO_TOKEN` and `TWILIO_FROM`
 empty in `app/.env` and SMS runs in **dry run**: each message is logged to the
-server console and recorded with status `dry_run`, so nothing is actually
-sent. Fill all three in and it starts sending for real — no code change needed.
+server console and recorded with status `dry_run`. Fill all three in and it
+sends for real - no code change needed.
 
 ## Tests
 
@@ -254,7 +280,7 @@ mysql -u mns_user -p MNS                    # as the app's user
 SHOW DATABASES;
 USE MNS;
 SHOW TABLES;
-SELECT id, email, name, birth_year, country FROM users;
+SELECT id, email, name, surname, birth_date, country FROM users;
 SELECT * FROM notifications ORDER BY id DESC LIMIT 20;  # what reminders went out
 DELETE FROM users WHERE email = 'test@example.com';   # remove a test account
 DROP DATABASE MNS;                                    # start over, then rerun step 2
