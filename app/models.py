@@ -1,5 +1,6 @@
 """models.py - SQLAlchemy tables. These mirror query.sql exactly."""
 from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     Boolean,
@@ -8,6 +9,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
+    Numeric,
     SmallInteger,
     String,
     Text,
@@ -27,9 +29,13 @@ CATEGORIES = ("screening", "vaccination", "checkup")
 COVERAGES = ("state", "private")
 REPEAT_UNITS = ("day", "week", "month", "year")
 EVENT_STATUSES = ("pending", "done", "missed")
-CHANNELS = ("push", "sms")
+CHANNELS = ("push", "sms", "email")
 NOTIFICATION_KINDS = ("overdue", "due_soon", "prep", "broadcast")
 NOTIFICATION_STATUSES = ("delivered", "sent", "dry_run", "skipped", "failed")
+LAB_CATEGORIES = (
+    "vitamin", "mineral", "heavy_metal", "blood_count",
+    "metabolic", "lipid", "hormone", "inflammation",
+)
 
 
 def localized(row, field: str, language: str) -> str | None:
@@ -66,6 +72,7 @@ class User(Base):
     reminder_lead_days: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=7)
     remind_push: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     remind_sms: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    remind_email: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     # onboarding step 2
     consent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -165,6 +172,9 @@ class Task(Base):
     doctor_specialty: Mapped[str | None] = mapped_column(String(80), nullable=True)
     repeat_every: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     repeat_unit: Mapped[str | None] = mapped_column(Enum(*REPEAT_UNITS), nullable=True)
+    # Email reminders: NULL = once per due date (the default); a number =
+    # again every N minutes until done (1440 = daily, 1 = the demo setting).
+    remind_every_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )
@@ -329,6 +339,9 @@ class Notification(Base):
     prep_item_id: Mapped[int | None] = mapped_column(
         ForeignKey("prep_plan_items.id", ondelete="CASCADE"), nullable=True
     )
+    # Emails only: the due date the reminder was about, so each due date is
+    # emailed once. NULL for a guideline that has never been logged.
+    due_on: Mapped[date | None] = mapped_column(Date, nullable=True)
     channel: Mapped[str] = mapped_column(Enum(*CHANNELS), nullable=False)
     kind: Mapped[str] = mapped_column(Enum(*NOTIFICATION_KINDS), nullable=False)
     message: Mapped[str] = mapped_column(String(1000), nullable=False)
@@ -338,3 +351,66 @@ class Notification(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now()
     )
+
+
+class LabTest(Base):
+    """Catalog of things a lab measures. Seeded by query.sql.
+
+    ref_low/ref_high are a typical adult range, for display only - the range
+    that counts is the one the lab printed, stored on each LabResult.
+    """
+    __tablename__ = "lab_tests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    code: Mapped[str] = mapped_column(String(40), unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    name_lv: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    category: Mapped[str] = mapped_column(Enum(*LAB_CATEGORIES), nullable=False)
+    unit: Mapped[str] = mapped_column(String(20), nullable=False)
+    ref_low: Mapped[Decimal | None] = mapped_column(Numeric(10, 3), nullable=True)
+    ref_high: Mapped[Decimal | None] = mapped_column(Numeric(10, 3), nullable=True)
+    summary: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    summary_lv: Mapped[str | None] = mapped_column(String(300), nullable=True)
+
+
+class LabReport(Base):
+    """One blood draw / lab visit, holding many LabResults."""
+    __tablename__ = "lab_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    taken_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    lab_name: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # the log entry (and its attached PDF), if the visit was logged too
+    log_entry_id: Mapped[int | None] = mapped_column(
+        ForeignKey("log_entries.id", ondelete="SET NULL"), nullable=True
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, server_default=func.now()
+    )
+
+    results: Mapped[list["LabResult"]] = relationship(
+        back_populates="report", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class LabResult(Base):
+    """One measured value. comparator '<' / '>' = below / above what the lab
+    can measure, e.g. mercury "< 1.0" is value 1.0 with comparator '<'."""
+    __tablename__ = "lab_results"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    report_id: Mapped[int] = mapped_column(
+        ForeignKey("lab_reports.id", ondelete="CASCADE"), nullable=False
+    )
+    lab_test_id: Mapped[int] = mapped_column(ForeignKey("lab_tests.id"), nullable=False)
+    value: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
+    comparator: Mapped[str | None] = mapped_column(Enum("<", ">"), nullable=True)
+    ref_low: Mapped[Decimal | None] = mapped_column(Numeric(10, 3), nullable=True)
+    ref_high: Mapped[Decimal | None] = mapped_column(Numeric(10, 3), nullable=True)
+
+    report: Mapped[LabReport] = relationship(back_populates="results")
+    lab_test: Mapped[LabTest] = relationship(lazy="joined")

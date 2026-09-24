@@ -791,3 +791,57 @@ details.fold > div { padding-bottom: 12px; color: var(--muted-foreground); line-
   .list.cards { grid-template-columns: repeat(3, 1fr); }
   .home-grid .list.cards { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ---------------------------------------------------------------------------
+   blood test results
+   One card per test: latest value, a line chart over time, the values table.
+   The line is a blue that is not one of the status colours; the band is the
+   normal range, and a dot outside it takes the "late" terracotta.
+   --------------------------------------------------------------------------- */
+
+:root { --series: #2f6db3; }
+
+.lab-overview p + p { margin-top: 4px; }
+.flag.high, .flag.low { color: var(--destructive); font-weight: 700; }
+
+.lab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+.lab-card { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.lab-head { display: flex; align-items: flex-start; gap: 12px; }
+.lab-head .grow { flex: 1; min-width: 0; }
+.lab-head h3 { font-size: 1.05rem; }
+.lab-latest { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-top: 2px; }
+.lab-latest strong { font-size: 1.35rem; font-weight: 800; }
+
+.chart-wrap { position: relative; }
+.chart { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .band { fill: var(--primary-soft); opacity: 0.7; }
+.chart .grid { stroke: var(--border); stroke-width: 1; }
+.chart .tick { fill: var(--muted-foreground); font-size: 11px; font-family: var(--font-sans); }
+.chart .line { fill: none; stroke: var(--series); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot { fill: var(--series); stroke: var(--card); stroke-width: 2; }
+.chart .dot.low, .chart .dot.high { fill: var(--destructive); }
+.chart .dot.picked { stroke: var(--foreground); }
+.chart .end-label { fill: var(--foreground); font-size: 12px; font-weight: 800; font-family: var(--font-sans); }
+.chart .hit { fill: transparent; cursor: pointer; outline: none; }
+.chart .hit:focus-visible { stroke: var(--ring); stroke-width: 2; }
+
+.chart-tip {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 12px));
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: 0 4px 12px oklch(0 0 0 / 0.1);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.lab-key { display: flex; align-items: center; gap: 8px; }
+.lab-key .swatch { width: 14px; height: 10px; border-radius: 2px; background: var(--primary-soft); flex-shrink: 0; }
+
+.lab-table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 0.9rem; }
+.lab-table th { text-align: left; color: var(--muted-foreground); font-weight: 700; padding: 4px 6px 4px 0; }
+.lab-table td { padding: 5px 6px 5px 0; border-top: 1px solid var(--border); }
+.lab-table tr.picked td { background: var(--secondary); font-weight: 700; }

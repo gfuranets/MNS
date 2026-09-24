@@ -12,6 +12,11 @@ A background loop wakes up every REMINDER_EVERY_MINUTES and does two jobs:
             that asks for Accept; until accepted it keeps popping up.
      sms  - one combined text per user per day, via notifications.send_batch()
             (dry run when Twilio is not configured, like the broadcast)
+     email - via Gmail (mailer.py). By default an email goes out ONCE per
+            item per due date: one email listing the new items, then silence.
+            When the item is done its next due date gets its own email.
+            A task can ask for more: remind_every_minutes repeats its email
+            every N minutes until it is done or deleted (1 = the demo).
 
 2. Preparation reminders. A step of a procedure checklist the user asked to
    be reminded about ("stop eating", "take your passport") goes out at its
@@ -25,13 +30,14 @@ import asyncio
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 
 import crud
+import mailer
 import notifications
 import planner
 import texts
@@ -41,9 +47,14 @@ from models import User, localized
 load_dotenv(Path(__file__).parent / ".env")
 
 # 0 turns the background loop off; POST /api/notifications/check still works.
-# Short by default so preparation reminders arrive close to their time.
-EVERY_MINUTES = float(os.getenv("REMINDER_EVERY_MINUTES", "5"))
+# Every minute by default, so preparation reminders arrive on time and a
+# task set to "remind every minute" really does.
+EVERY_MINUTES = float(os.getenv("REMINDER_EVERY_MINUTES", "1"))
 SEND_HOUR = int(os.getenv("REMINDER_SEND_HOUR", "9"))
+
+# The loop does not wake exactly on the minute; without some slack an
+# "every minute" email would go out every other minute.
+REPEAT_SLACK = timedelta(seconds=20)
 
 log = logging.getLogger(__name__)
 
@@ -53,8 +64,10 @@ class RunReport:
     users_checked: int = 0
     push: int = 0
     sms: int = 0
+    email: int = 0
     prep: int = 0
     dry_run: bool = field(default_factory=lambda: not notifications.is_configured())
+    email_dry_run: bool = field(default_factory=lambda: not mailer.is_configured())
 
 
 # --------------------------------------------------------------------------
@@ -77,6 +90,34 @@ def pick_due(
         if last is not None and last.date() >= now.date():
             continue
         due.append(item)
+    return due
+
+
+def email_cycle(item: planner.Item) -> date | None:
+    """The due date an email is "about". A guideline never logged is due
+    today, every day - its due date keeps moving - so it counts as one cycle
+    (None) until the user logs it."""
+    if item.kind == "guideline" and item.last_done is None:
+        return None
+    return item.due_on
+
+
+def pick_email(
+    items: list[planner.Item],
+    lead_days: int,
+    emailed: dict[tuple[str, int, date | None], datetime],
+    now: datetime,
+) -> list[planner.Item]:
+    """Late or due within `lead_days`, and not emailed about for this due date
+    yet - or, for a task with remind_every_minutes, not within that interval."""
+    due = []
+    for item in items:
+        if item.days > lead_days:
+            continue
+        last = emailed.get((*item.key, email_cycle(item)))
+        every = item.remind_every_minutes
+        if last is None or (every and now - last >= timedelta(minutes=every) - REPEAT_SLACK):
+            due.append(item)
     return due
 
 
@@ -117,14 +158,31 @@ async def remind_user(
 
     items = crud.all_items(db, user, now.date(), checkups)
     due = pick_due(items, user.reminder_lead_days, crud.last_reminded(db, user.id), now)
-    if not due:
+    to_email = (pick_email(items, user.reminder_lead_days, crud.last_emailed(db, user.id), now)
+                if user.remind_email else [])
+    if not due and not to_email:
         return report
 
     def target(item):
         return ({"checkup_type_id": item.id} if item.kind == "guideline"
                 else {"task_event_id": item.id})
 
-    if user.remind_push:
+    if to_email:
+        subject, body = texts.email_text(user.name, to_email, user.language)
+        outcome = await mailer.send_email(user.email, subject, body)
+        # One row per item, carrying the due date it was about - that is
+        # what makes it once per due date. A failed send is recorded too
+        # (for the inbox/debugging) but not counted, so it is retried.
+        for item in to_email:
+            crud.add_notification(
+                db, user_id=user.id, channel="email", kind=kind_of(item), message=body,
+                status=outcome["status"], detail=outcome["detail"],
+                due_on=email_cycle(item), **target(item),
+            )
+        if outcome["status"] in ("sent", "dry_run"):
+            report.email += 1
+
+    if due and user.remind_push:
         for item in due:
             crud.add_notification(
                 db, user_id=user.id, channel="push", kind=kind_of(item),
@@ -133,7 +191,7 @@ async def remind_user(
             )
             report.push += 1
 
-    if user.remind_sms:
+    if due and user.remind_sms:
         body = texts.sms_text(user.name, due, user.language)
         outcome = await _sms(user, body)
         # One row per item, so "already reminded today" works per item -
@@ -166,7 +224,7 @@ async def send_prep_reminders(
         )
         # Explicitly requested, so it goes out even with daily reminders off -
         # but still only on the channels the user allows.
-        if user.remind_push or not user.remind_sms:
+        if user.remind_push or not (user.remind_sms or user.remind_email):
             crud.add_notification(
                 db, user_id=user.id, prep_item_id=item.id, channel="push",
                 kind="prep", message=body, status="delivered",
@@ -176,6 +234,13 @@ async def send_prep_reminders(
             crud.add_notification(
                 db, user_id=user.id, prep_item_id=item.id, channel="sms", kind="prep",
                 message=body, status=outcome["status"], detail=outcome["detail"],
+            )
+        if user.remind_email:
+            subject, email_body = texts.prep_email_text(body, user.language)
+            outcome = await mailer.send_email(user.email, subject, email_body)
+            crud.add_notification(
+                db, user_id=user.id, prep_item_id=item.id, channel="email", kind="prep",
+                message=email_body, status=outcome["status"], detail=outcome["detail"],
             )
         item.sent_at = now
         report.prep += 1
@@ -203,11 +268,12 @@ async def run_once(db: Session, now: datetime | None = None) -> RunReport:
             db.rollback()
             log.exception("reminders failed for user %s", user.id)
 
-    if report.push or report.sms or report.prep:
+    if report.push or report.sms or report.email or report.prep:
         log.info(
-            "reminder run: %d users, %d push, %d sms, %d prep%s",
-            report.users_checked, report.push, report.sms, report.prep,
-            " (dry run)" if report.dry_run else "",
+            "reminder run: %d users, %d push, %d sms, %d email, %d prep%s",
+            report.users_checked, report.push, report.sms, report.email, report.prep,
+            "".join([" (sms dry run)" if report.dry_run and report.sms else "",
+                     " (email dry run)" if report.email_dry_run and report.email else ""]),
         )
     return report
 

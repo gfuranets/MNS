@@ -23,7 +23,6 @@ let me = null;            // the logged-in user, from /api/me
 let renderId = 0;         // drops a slow screen if the user has already moved on
 let waitingCount = 0;     // reminders waiting for Accept - the bell badge
 const chat = [];          // the AI screen's conversation, kept while the page is open
-const dismissed = new Map();   // reminder id -> when "Not now" was pressed
 const cal = (() => {
   const d = new Date();
   return { year: d.getFullYear(), month: d.getMonth(), selected: localIso(d) };
@@ -53,9 +52,8 @@ async function start() {
     render();
   });
   await render();
-  showPendingReminders();
-  // "If you ignore it, it keeps reminding": look again every few minutes.
-  setInterval(showPendingReminders, 5 * 60 * 1000);
+  refreshBell();
+  setInterval(refreshBell, 5 * 60 * 1000);
 }
 
 /* --------------------------------------------------------------------------
@@ -158,6 +156,8 @@ const ROUTES = [
   [/^\/profile\/edit$/, () => viewProfileForm(false)],
   [/^\/profile\/reminders$/, viewReminderSettings],
   [/^\/vaccinations$/, viewPassport],
+  [/^\/labs$/, viewLabs],
+  [/^\/checks$/, viewChecks],
   [/^\/inbox$/, viewInbox],
   [/^\/privacy$/, viewPrivacy],
   [/^\/broadcast$/, viewBroadcast],
@@ -339,54 +339,17 @@ async function completePopup(p, then = render) {
 const canComplete = (p) => Boolean(p.checkup_type_id || p.task_event_id || p.prep_item_id);
 
 /* --------------------------------------------------------------------------
-   reminder pop-ups: they keep coming back until accepted
+   reminders: no pop-ups - they arrive by email (once per due date) and wait
+   in the inbox; the bell just shows how many are not accepted yet
    -------------------------------------------------------------------------- */
 
-async function showPendingReminders() {
-  if ($modal.childElementCount || !me.profile_complete) return;
-  let pending;
+async function refreshBell() {
   try {
-    pending = await api("/api/reminders/pending");
+    waitingCount = (await api("/api/reminders/pending")).length;
   } catch {
     return;
   }
-  waitingCount = pending.length;
   updateBell();
-  const now = Date.now();
-  const queue = pending.filter((p) => !(dismissed.get(p.notification_id) > now - 30 * 60 * 1000));
-  if (queue.length) showReminder(queue, 0);
-}
-
-function showReminder(queue, index) {
-  const p = queue[index];
-  if (!p) return render();
-  const next = () => showReminder(queue, index + 1);
-  const left = queue.length - index - 1;
-
-  openModal([
-    h("h2", {}, t("reminder.title")),
-    h("p", { class: "body" }, p.message),
-    h("p", { class: "hint" }, t("reminder.later_hint")),
-    left > 0 && h("p", { class: "hint" }, t("reminder.more", { n: left })),
-    h("div", { class: "actions" },
-      h("button", {
-        class: "btn primary",
-        onclick: guard(async () => {
-          await api(`/api/notifications/${p.notification_id}/accept`, { method: "POST" });
-          onModalClose = null;
-          closeModal();
-          next();
-        }),
-      }, t("home.accept")),
-      canComplete(p) && h("button", {
-        class: "btn soft",
-        onclick: () => { onModalClose = null; closeModal(); completePopup(p, next); },
-      }, t("home.mark_done")),
-      h("button", { class: "btn outline", onclick: () => closeModal() }, t("reminder.later")),
-    ),
-  ], {
-    onClose: () => { dismissed.set(p.notification_id, Date.now()); next(); },
-  });
 }
 
 /* --------------------------------------------------------------------------
@@ -633,6 +596,8 @@ async function viewHome() {
             shortcut("#/schedule", "calendar", t("schedule.title")),
             shortcut("#/info", "info", t("info.title")),
             shortcut("#/vaccinations", "check", t("profile.passport")),
+            shortcut("#/labs", "drop", t("labs.title")),
+            shortcut("#/checks", "shield", t("checks.title")),
           ]))),
     ],
   };
@@ -817,7 +782,7 @@ async function viewSchedule(query) {
     wide: true,
     body: [
       h("div", { class: "split" }, calendarCard, dayList),
-      h("div", { class: "section-row" }, section(t("schedule.list"))),
+      h("div", { class: "section-row" }, section(t("schedule.list")), h("a", { href: "#/checks" }, t("schedule.all_checks"))),
       h("div", { class: "chips", style: "margin-bottom:12px" }, chip("all"), chip("recommended"), chip("mine")),
       items.length ? h("div", { class: "list cards" }, items.map((i) => itemRow(i, { showLast: true }))) : empty(t("schedule.empty")),
     ],
@@ -990,6 +955,10 @@ async function viewAdd() {
       }),
       h("span", {}, text))));
 
+  // Email reminders: "" = once per date; otherwise minutes between emails.
+  const remindEvery = h("select", {}, [["", "add.remind_once"], ["1440", "add.remind_daily"],
+    ["10080", "add.remind_weekly"], ["1", "add.remind_minute"]].map(([v, key]) => h("option", { value: v }, t(key))));
+
   const description = h("textarea", { maxlength: 2000 });
   const doctor = h("input", { type: "text", maxlength: 80 });
   const specialty = h("input", { type: "text", maxlength: 80, placeholder: t("add.specialty_ph") });
@@ -1007,6 +976,7 @@ async function viewAdd() {
         title: title.value.trim(), category: cat, first_date: first.value,
         description: description.value.trim() || null,
         doctor_name: doctor.value.trim() || null, doctor_specialty: specialty.value.trim() || null,
+        remind_every_minutes: remindEvery.value ? Number(remindEvery.value) : null,
       };
       if (mode === "repeat") Object.assign(body, { repeat_every: Number(every.value), repeat_unit: unit.value });
       else body.extra_dates = [...extra.querySelectorAll("input")].map((i) => i.value).filter(Boolean);
@@ -1023,6 +993,7 @@ async function viewAdd() {
     section(t("add.type")), chips, customCategory,
     h("div", { class: "form-foot pair" }, h("div", {}, field(t("add.name"), title)), h("div", {}, field(t("add.first_date"), first))),
     section(t("add.how_often")), modeSwitch, repeatBox, manualBox,
+    h("div", { class: "form-foot" }, field(t("add.remind"), remindEvery, t("add.remind_hint"))),
     h("div", { class: "form-foot pair" }, h("div", {}, field(t("add.doctor_name"), doctor)), h("div", {}, field(t("add.doctor_specialty"), specialty))),
     h("div", { class: "form-foot" }, field(t("add.description"), description)),
     h("div", { class: "form-foot" }, save),
@@ -1058,6 +1029,7 @@ async function viewLog(query) {
         h("div", { class: "sub" }, `${fmtDate(l.date)} · ${categoryLabel(l.category)}`),
         l.notes && h("div", { class: "sub" }, l.notes),
         l.kind === "done" && h("div", { class: "sub", style: "display:flex;gap:14px;margin-top:4px" },
+          l.lab_report_id && h("a", { href: `#/labs?report=${l.lab_report_id}` }, t("labs.see")),
           l.attachment_name && h("button", {
             class: "link-btn",
             onclick: guard(async () => saveBlob(await api(`/api/log/${l.id}/attachment`, { raw: true }), l.attachment_name)),
@@ -1332,6 +1304,7 @@ async function viewReminderSettings() {
   const lead = h("select", {}, LEAD_DAYS.map((d) => h("option", { value: d, selected: d === me.reminder_lead_days }, t(`settings.lead_${d}`))));
   const push = h("input", { type: "checkbox", checked: me.remind_push });
   const sms = h("input", { type: "checkbox", checked: me.remind_sms });
+  const email = h("input", { type: "checkbox", checked: me.remind_email });
   const phone = h("input", { type: "tel", maxlength: 20, value: me.phone || "", placeholder: "20 123 456" });
   const toggleRow = (input, title, hint) => h("label", { class: "check-row" },
     h("div", { class: "grow" }, h("div", { class: "title", style: "font-weight:700" }, title), h("div", { class: "hint", style: "margin:2px 0 0" }, hint)),
@@ -1348,10 +1321,11 @@ async function viewReminderSettings() {
       checkNow.disabled = true;
       try {
         const r = await api("/api/notifications/check", { method: "POST" });
-        const n = r.push + r.sms + r.prep;
+        const n = r.push + r.sms + r.email + r.prep;
         showMessage(result, [n ? t("settings.check_sent", { n }) : t("settings.check_none"),
+          r.email ? t(r.email_dry_run ? "settings.email_test" : "settings.email_sent", { email: me.email }) : "",
           r.sms && r.dry_run ? t("settings.sms_test") : ""].filter(Boolean).join(" "), "ok");
-        showPendingReminders();
+        refreshBell();
       } catch (error) {
         showMessage(result, error.message);
       } finally {
@@ -1374,7 +1348,7 @@ async function viewReminderSettings() {
               method: "PATCH",
               body: {
                 reminders_on: on.checked, reminder_lead_days: Number(lead.value),
-                remind_push: push.checked, remind_sms: sms.checked, phone: phone.value.trim() || null,
+                remind_push: push.checked, remind_sms: sms.checked, remind_email: email.checked, phone: phone.value.trim() || null,
               },
             });
             toast(t("common.saved"));
@@ -1389,6 +1363,7 @@ async function viewReminderSettings() {
         h("div", { class: "form-foot" }, field(t("settings.lead"), lead)),
         section(t("settings.channels")),
         h("div", { class: "list" },
+          toggleRow(email, t("settings.email"), t("settings.email_hint", { email: me.email })),
           toggleRow(push, t("settings.push"), t("settings.push_hint")),
           toggleRow(sms, t("settings.sms"), t("settings.sms_hint"))),
         h("div", { class: "form-foot" }, field(t("settings.phone"), phone, t("settings.phone_hint"))),
@@ -1425,6 +1400,243 @@ async function viewPassport() {
       recorded.length > 0 && h("div", { class: "form-foot" }, list(recorded.map(row))),
       missing.length > 0 && [section(t("passport.recommended")), list(missing.map(row))],
       !rows.length && h("div", { class: "form-foot" }, empty(t("log.empty"))),
+    ],
+  };
+}
+
+/* --------------------------------------------------------------------------
+   blood test results: one small line chart per value
+   -------------------------------------------------------------------------- */
+
+const LAB_CATEGORIES = ["vitamin", "mineral", "heavy_metal", "blood_count", "metabolic", "lipid", "hormone", "inflammation"];
+
+/* 44.2 -> "44.2", 0.72 -> "0.72", 148 -> "148" - in the user's locale */
+const fmtNum = (v) => v.toLocaleString(locale(), { maximumFractionDigits: 2 });
+const labValue = (p, unit) => `${p.comparator ? `${p.comparator} ` : ""}${fmtNum(p.value)} ${unit}`;
+const flagPill = (flag) => h("span", { class: `pill ${flag === "normal" ? "up_to_date" : "overdue"}` }, t(`labs.flag.${flag}`));
+
+function rangeText(p) {
+  if (p.ref_low !== null && p.ref_high !== null) return t("labs.range_between", { low: fmtNum(p.ref_low), high: fmtNum(p.ref_high) });
+  if (p.ref_high !== null) return t("labs.range_under", { high: fmtNum(p.ref_high) });
+  if (p.ref_low !== null) return t("labs.range_over", { low: fmtNum(p.ref_low) });
+  return "";
+}
+
+/* "30–100", "< 50", "> 1" for the table */
+function shortRange(p) {
+  if (p.ref_low !== null && p.ref_high !== null) return `${fmtNum(p.ref_low)}–${fmtNum(p.ref_high)}`;
+  if (p.ref_high !== null) return `< ${fmtNum(p.ref_high)}`;
+  if (p.ref_low !== null) return `> ${fmtNum(p.ref_low)}`;
+  return "";
+}
+
+/* h() for SVG elements */
+function svg(tag, attrs, ...children) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [key, value] of Object.entries(attrs || {})) {
+    if (value === null || value === undefined || value === false) continue;
+    if (key.startsWith("on")) el.addEventListener(key.slice(2), value);
+    else el.setAttribute(key, value);
+  }
+  el.append(...flat(children));
+  return el;
+}
+
+/* 3-5 round tick values covering lo..hi */
+function niceTicks(lo, hi) {
+  const raw = (hi - lo) / 4;
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw);
+  const ticks = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + step / 1e6; v += step) ticks.push(+v.toFixed(6));
+  return ticks;
+}
+
+/* One test over time. The shaded band is the normal range the lab printed
+   on the latest report; a dot outside it is drawn in the "late" colour and
+   every value is also in the tooltip and the table, so colour is never the
+   only signal. */
+function labChart(series, highlight) {
+  const { points, unit } = series;
+  const W = 280, H = 160, L = 38, R = 12, T = 18, B = 24;
+  const last = points[points.length - 1];
+
+  const values = points.map((p) => p.value);
+  let lo = Math.min(...values, last.ref_low ?? Infinity);
+  let hi = Math.max(...values, last.ref_high ?? -Infinity);
+  if (lo === hi) { lo -= 1; hi += 1; }
+  const pad = (hi - lo) * 0.15;
+  lo = Math.max(0, lo - pad);
+  hi += pad;
+  const ticks = niceTicks(lo, hi);
+  lo = Math.min(lo, ticks[0]);
+  hi = Math.max(hi, ticks[ticks.length - 1]);
+
+  const times = points.map((p) => new Date(p.taken_at).getTime());
+  const t0 = times[0], t1 = times[times.length - 1];
+  const x = (time) => (t1 === t0 ? (L + W - R) / 2 : L + 8 + ((time - t0) / (t1 - t0)) * (W - L - R - 16));
+  const y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+
+  const bandTop = y(Math.min(last.ref_high ?? hi, hi));
+  const bandBottom = y(Math.max(last.ref_low ?? lo, lo));
+  const shortDate = (iso) => new Date(iso).toLocaleDateString(locale(), { month: "short", year: "2-digit" });
+  // Date labels that would touch are skipped - the latest one always stays.
+  const labelled = new Set([points.length - 1]);
+  let lastX = x(times[points.length - 1]);
+  for (let i = points.length - 2; i >= 0; i--) {
+    if (lastX - x(times[i]) >= 64) { labelled.add(i); lastX = x(times[i]); }
+  }
+  // The latest value sits above its dot, or below it when the line comes down into it.
+  const prev = points[points.length - 2];
+  const labelBelow = prev && prev.value > last.value;
+
+  const wrap = h("div", { class: "chart-wrap" });
+  const tip = h("div", { class: "chart-tip", hidden: true });
+  const show = (p, i) => {
+    fill(tip,
+      h("div", { class: "muted small" }, fmtDate(p.taken_at)),
+      h("strong", {}, labValue(p, unit)), " ", t(`labs.flag.${p.flag}`));
+    tip.hidden = false;
+    const box = wrap.getBoundingClientRect();
+    const left = (x(times[i]) / W) * box.width;
+    tip.style.left = `${Math.min(Math.max(left, 70), box.width - 70)}px`;
+    tip.style.top = `${(y(p.value) / H) * box.height}px`;
+  };
+  const hide = () => { tip.hidden = true; };
+
+  const chart = svg("svg", { viewBox: `0 0 ${W} ${H}`, class: "chart", role: "img", "aria-label": `${series.name}, ${unit}` },
+    // normal range
+    svg("rect", { class: "band", x: L, y: bandTop, width: W - L - R, height: Math.max(0, bandBottom - bandTop) }),
+    // grid + y labels
+    ticks.map((v) => [
+      svg("line", { class: "grid", x1: L, x2: W - R, y1: y(v), y2: y(v) }),
+      svg("text", { class: "tick", x: L - 6, y: y(v) + 3.5, "text-anchor": "end" }, fmtNum(v)),
+    ]),
+    // x labels
+    points.map((p, i) => labelled.has(i) && svg("text", {
+      class: "tick", x: x(times[i]), y: H - 6,
+      "text-anchor": points.length === 1 ? "middle" : i === points.length - 1 ? "end" : i === 0 ? "start" : "middle",
+    }, shortDate(p.taken_at))),
+    // the line
+    points.length > 1 && svg("polyline", { class: "line", points: points.map((p, i) => `${x(times[i])},${y(p.value)}`).join(" ") }),
+    // dots, then the latest value as the one direct label
+    points.map((p, i) => svg("circle", {
+      class: `dot ${p.flag}${p.report_id === highlight ? " picked" : ""}`,
+      cx: x(times[i]), cy: y(p.value), r: p.report_id === highlight ? 6 : 4.5,
+    })),
+    svg("text", { class: "end-label", x: x(t1), y: y(last.value) + (labelBelow ? 18 : -10), "text-anchor": points.length === 1 ? "middle" : "end" },
+      `${last.comparator || ""}${fmtNum(last.value)}`),
+    // hover / focus targets, bigger than the dots
+    points.map((p, i) => svg("circle", {
+      class: "hit", cx: x(times[i]), cy: y(p.value), r: 14, tabindex: 0,
+      "aria-label": `${fmtDate(p.taken_at)}: ${labValue(p, unit)}, ${t(`labs.flag.${p.flag}`)}`,
+      onpointerenter: () => show(p, i), onpointerleave: hide, onfocus: () => show(p, i), onblur: hide,
+    })),
+  );
+  wrap.append(chart, tip);
+  return wrap;
+}
+
+function labCard(series, highlight) {
+  const last = series.points[series.points.length - 1];
+  const table = h("details", { class: "fold" },
+    h("summary", {}, t("labs.show_values")),
+    h("table", { class: "lab-table" },
+      h("thead", {}, h("tr", {}, h("th", {}, t("labs.date")), h("th", {}, t("labs.value")), h("th", {}, t("labs.range")))),
+      h("tbody", {}, [...series.points].reverse().map((p) => h("tr", { class: p.report_id === highlight ? "picked" : null },
+        h("td", {}, fmtDate(p.taken_at)),
+        h("td", {}, labValue(p, series.unit), p.flag !== "normal" && h("span", { class: `flag ${p.flag}` }, ` · ${t(`labs.flag.${p.flag}`)}`)),
+        h("td", { class: "muted" }, shortRange(p)))))));
+
+  return h("section", { class: "card lab-card" },
+    h("div", { class: "lab-head" },
+      h("div", { class: "grow" },
+        h("h3", {}, series.name),
+        h("div", { class: "lab-latest" }, h("strong", {}, labValue(last, series.unit)),
+          h("span", { class: "muted small" }, fmtDate(last.taken_at)))),
+      flagPill(last.flag)),
+    labChart(series, highlight),
+    h("div", { class: "lab-key muted small" }, h("span", { class: "swatch" }), rangeText(last)),
+    series.summary && h("p", { class: "muted small" }, series.summary),
+    table);
+}
+
+async function viewLabs(query) {
+  const category = query.get("category") || "";
+  const highlight = Number(query.get("report")) || null;
+  const all = await api("/api/labs");
+
+  const draws = new Map();   // report id -> date
+  for (const s of all) for (const p of s.points) draws.set(p.report_id, p.taken_at);
+  const latestDate = [...draws.values()].sort().pop();
+  const outOfRange = all.filter((s) => {
+    const last = s.points[s.points.length - 1];
+    return last.taken_at === latestDate && last.flag !== "normal";
+  });
+
+  const present = LAB_CATEGORIES.filter((c) => all.some((s) => s.category === c));
+  const keep = (extra) => {
+    const q = new URLSearchParams(extra);
+    if (highlight) q.set("report", highlight);
+    const s = q.toString();
+    return s ? `#/labs?${s}` : "#/labs";
+  };
+  const chip = (value, label) => h("button", {
+    "aria-pressed": String(category === value),
+    onclick: () => replace(keep(value ? { category: value } : {})),
+  }, label);
+
+  const shown = all.filter((s) => !category || s.category === category);
+
+  return {
+    title: t("labs.title"),
+    back: "#/home",
+    wide: true,
+    body: all.length ? [
+      h("div", { class: "card lab-overview" },
+        h("p", {}, h("strong", {}, t("labs.summary", { n: draws.size, date: fmtDate(latestDate) }))),
+        h("p", { class: outOfRange.length ? "flag high" : "muted" },
+          outOfRange.length
+            ? `${t("labs.out_of_range", { n: outOfRange.length })}: ${outOfRange.map((s) => s.name).join(", ")}`
+            : t("labs.all_in_range")),
+        highlight && draws.has(highlight) && h("p", { class: "muted small" }, t("labs.highlight", { date: fmtDate(draws.get(highlight)) }))),
+      h("div", { class: "chips", style: "margin:16px 0 14px" },
+        chip("", t("labs.all")), present.map((c) => chip(c, t(`labcat.${c}`)))),
+      h("div", { class: "lab-grid" }, shown.map((s) => labCard(s, highlight))),
+    ] : empty(t("labs.empty")),
+  };
+}
+
+/* --------------------------------------------------------------------------
+   every state-paid check, including the ones not for you (yet)
+   -------------------------------------------------------------------------- */
+
+async function viewChecks() {
+  const checks = await api("/api/checkups");
+  const who = (c) => {
+    const people = t(c.sex === "female" ? "checks.women" : c.sex === "male" ? "checks.men" : "checks.everyone");
+    const ages = c.max_age ? t("checks.ages", { min: c.min_age, max: c.max_age }) : c.min_age ? t("checks.from", { min: c.min_age }) : "";
+    const every = c.interval_months % 12 === 0 ? repeatText(c.interval_months / 12, "year") : repeatText(c.interval_months, "month");
+    return [people + (ages ? ` ${ages}` : ""), every.charAt(0).toLowerCase() + every.slice(1)].join(" · ");
+  };
+  const row = (c) => h(c.applies ? "a" : "div", { class: "row", href: c.applies ? `#/checkup/${c.id}` : null },
+    h("div", { class: "grow" },
+      h("div", { class: "title" }, c.name),
+      h("div", { class: "sub" }, `${categoryLabel(c.category)} · ${who(c)}`),
+      h("div", { class: "sub" }, c.summary),
+      !c.applies && c.source_url && h("a", { class: "small", href: c.source_url, target: "_blank", rel: "noopener" }, t("checkup.source"))),
+    c.applies && chev());
+
+  const mine = checks.filter((c) => c.applies);
+  const other = checks.filter((c) => !c.applies);
+  return {
+    title: t("checks.title"),
+    back: "#/home",
+    wide: true,
+    body: [
+      h("p", { class: "muted" }, t("checks.intro")),
+      mine.length > 0 && [section(t("checks.for_you")), h("div", { class: "list cards" }, mine.map(row))],
+      other.length > 0 && [section(t("checks.not_for_you")), h("div", { class: "list cards" }, other.map(row))],
     ],
   };
 }

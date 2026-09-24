@@ -1,4 +1,4 @@
-"""texts.py - the words the server sends: reminder pop-ups, SMS, prep alerts.
+"""texts.py - the words the server sends: reminder pop-ups, SMS, email, prep alerts.
 
 The app UI translates itself (static/i18n.js). These are the only texts
 generated on the server, because they leave it as SMS or get stored in the
@@ -94,3 +94,32 @@ def prep_text(procedure: str, appointment_at: datetime, step: str, language: str
     if language == "lv":
         return f"{procedure}, {appointment_at:%d.%m.} plkst. {appointment_at:%H:%M}: {step}"
     return f"{procedure}, {appointment_at:%d %b} at {appointment_at:%H:%M}: {step}"
+
+
+def email_text(first_name: str, items: list, language: str = "en") -> tuple[str, str]:
+    """(subject, body) for the reminder email - one email for all new items."""
+    lines = "\n".join(f"  • {push_text(i, language)}" for i in items)
+    if language == "lv":
+        subject = ("Veselības atgādinājums: " + items[0].name if len(items) == 1
+                   else f"Veselības atgādinājumi: {len(items)}")
+        body = (f"Sveiki, {first_name}!\n\n"
+                f"{lines}\n\n"
+                "Atveriet lietotni, lai pieteiktos vai atzīmētu paveikto. "
+                "Par katru termiņu mēs rakstām tikai vienreiz.\n\n"
+                "— MNS")
+        return subject, body
+    subject = ("Health reminder: " + items[0].name if len(items) == 1
+               else f"{len(items)} health reminders")
+    body = (f"Hi {first_name},\n\n"
+            f"{lines}\n\n"
+            "Open the app to book, or to mark them done. "
+            "We email once per due date - no repeats.\n\n"
+            "— MNS")
+    return subject, body
+
+
+def prep_email_text(step_text: str, language: str = "en") -> tuple[str, str]:
+    """(subject, body) for a preparation step - `step_text` is prep_text()."""
+    if language == "lv":
+        return "Sagatavošanās procedūrai", f"{step_text}\n\n— MNS"
+    return "Getting ready for your appointment", f"{step_text}\n\n— MNS"

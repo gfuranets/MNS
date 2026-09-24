@@ -6,12 +6,14 @@ file, and shape the response. No SQL in the route handlers.
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import delete, func, or_, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, contains_eager
 
 import auth
 import planner
 from models import (
     CheckupType,
+    LabReport,
+    LabResult,
     LogEntry,
     Notification,
     PrepPlan,
@@ -126,6 +128,25 @@ def all_checkups(db: Session) -> list[CheckupType]:
     return list(db.scalars(select(CheckupType).order_by(CheckupType.name)))
 
 
+def lab_results(db: Session, user_id: int) -> list[LabResult]:
+    """Every measured value of the user, oldest draw first."""
+    return list(db.scalars(
+        select(LabResult)
+        .join(LabResult.report)
+        .options(contains_eager(LabResult.report))
+        .where(LabReport.user_id == user_id)
+        .order_by(LabReport.taken_at, LabResult.id)
+    ).unique())
+
+
+def lab_reports_by_log_entry(db: Session, user_id: int) -> dict[int, int]:
+    """log_entry_id -> lab report id, for "See results" on the Log screen."""
+    return dict(db.execute(
+        select(LabReport.log_entry_id, LabReport.id)
+        .where(LabReport.user_id == user_id, LabReport.log_entry_id.is_not(None))
+    ).all())
+
+
 def get_checkup(db: Session, checkup_id: int) -> CheckupType | None:
     return db.get(CheckupType, checkup_id)
 
@@ -200,6 +221,7 @@ def create_task(db: Session, user: User, data: TaskCreate) -> Task:
         doctor_specialty=(data.doctor_specialty or "").strip() or None,
         repeat_every=data.repeat_every,
         repeat_unit=data.repeat_unit,
+        remind_every_minutes=data.remind_every_minutes,
     )
     for due in sorted({data.first_date, *data.extra_dates}):
         task.events.append(TaskEvent(user_id=user.id, due_on=due))
@@ -458,6 +480,7 @@ def add_notification(
     checkup_type_id: int | None = None,
     task_event_id: int | None = None,
     prep_item_id: int | None = None,
+    due_on: date | None = None,
     detail: str | None = None,
 ) -> Notification:
     """Record one notification. Does not commit - callers add a batch, then commit once."""
@@ -466,6 +489,7 @@ def add_notification(
         checkup_type_id=checkup_type_id,
         task_event_id=task_event_id,
         prep_item_id=prep_item_id,
+        due_on=due_on,
         channel=channel,
         kind=kind,
         message=message[:1000],
@@ -555,17 +579,35 @@ def clear_item_reminders(
 
 
 def last_reminded(db: Session, user_id: int) -> dict[tuple[str, int], datetime]:
-    """(kind, id) -> when we last reminded this user about that item, on any channel."""
+    """(kind, id) -> when we last reminded this user about that item by push
+    or SMS. Emails have their own rule - see last_emailed()."""
     found = {}
     for column, kind in ((Notification.checkup_type_id, "guideline"),
                          (Notification.task_event_id, "task")):
         rows = db.execute(
             select(column, func.max(Notification.created_at))
             .where(Notification.user_id == user_id, column.is_not(None),
+                   Notification.channel != "email",
                    Notification.kind.in_(("overdue", "due_soon")))
             .group_by(column)
         )
         found.update({(kind, item_id): when for item_id, when in rows})
+    return found
+
+
+def last_emailed(db: Session, user_id: int) -> dict[tuple[str, int, date | None], datetime]:
+    """(kind, id, due_on) -> when this user was last emailed about that item
+    for that due date. Failed sends do not count, so they are retried."""
+    found = {}
+    for column, kind in ((Notification.checkup_type_id, "guideline"),
+                         (Notification.task_event_id, "task")):
+        rows = db.execute(
+            select(column, Notification.due_on, func.max(Notification.created_at))
+            .where(Notification.user_id == user_id, Notification.channel == "email",
+                   column.is_not(None), Notification.status.in_(("sent", "dry_run")))
+            .group_by(column, Notification.due_on)
+        )
+        found.update({(kind, item_id, due_on): when for item_id, due_on, when in rows})
     return found
 
 
@@ -575,7 +617,8 @@ def users_to_remind(db: Session) -> list[User]:
     return list(db.scalars(
         select(User).where(
             User.reminders_on.is_(True),
-            (User.remind_push.is_(True)) | (User.remind_sms.is_(True)),
+            (User.remind_push.is_(True)) | (User.remind_sms.is_(True))
+            | (User.remind_email.is_(True)),
             User.birth_date.is_not(None),
         ).order_by(User.id)
     ))

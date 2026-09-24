@@ -19,6 +19,7 @@ from planner import (  # noqa: E402
     age_on,
     guideline_items,
     interval_for,
+    lab_flag,
     next_occurrence,
     sort_items,
     task_items,
@@ -151,7 +152,7 @@ class TestGuidelineItems:
 
 class TestTaskItems:
     def event(self, id, due_on, task_id=7):
-        task = SimpleNamespace(title="Physio", category="appointment")
+        task = SimpleNamespace(title="Physio", category="appointment", remind_every_minutes=None)
         return SimpleNamespace(id=id, task_id=task_id, due_on=due_on, task=task)
 
     def test_statuses(self):
@@ -202,6 +203,74 @@ class TestPickDue:
 
 
 # --------------------------------------------------------------------------
+# email rule: once per item per due date, unless the task asks for more
+# --------------------------------------------------------------------------
+
+from reminders import email_cycle, pick_email  # noqa: E402
+
+DUE = date(2026, 10, 1)
+
+
+def due_item(id, days, kind="guideline", due_on=DUE, last_done=date(2025, 10, 1), every=None):
+    return SimpleNamespace(key=(kind, id), kind=kind, days=days, due_on=due_on,
+                           last_done=last_done, remind_every_minutes=every)
+
+
+class TestPickEmail:
+    def test_within_lead_time_is_emailed(self):
+        items = [due_item(1, 5), due_item(2, 8)]
+        assert [i.key[1] for i in pick_email(items, 7, {}, NOW)] == [1]
+
+    def test_only_once_for_the_same_due_date(self):
+        # Emailed days ago, still not done, now overdue: no second email.
+        emailed = {("guideline", 1, DUE): NOW - timedelta(days=5)}
+        assert pick_email([due_item(1, -3)], 7, emailed, NOW) == []
+
+    def test_again_for_the_next_due_date(self):
+        # Done since; the new due date gets its own email.
+        emailed = {("guideline", 1, DUE): NOW - timedelta(days=300)}
+        assert len(pick_email([due_item(1, 3, due_on=date(2027, 10, 1))], 7, emailed, NOW)) == 1
+
+    def test_never_logged_guideline_is_one_cycle(self):
+        # Its due date is "today" every day - it must not be emailed daily.
+        never = due_item(1, 0, due_on=date(2026, 9, 25), last_done=None)
+        assert email_cycle(never) is None
+        assert pick_email([never], 7, {("guideline", 1, None): NOW - timedelta(days=9)}, NOW) == []
+
+    def test_guideline_and_task_ids_do_not_collide(self):
+        emailed = {("guideline", 1, DUE): NOW}
+        assert len(pick_email([due_item(1, 1, kind="task")], 7, emailed, NOW)) == 1
+
+
+class TestRepeatingEmail:
+    """A task with remind_every_minutes is emailed again after that long."""
+
+    def task(self, every):
+        return due_item(1, 0, kind="task", every=every)
+
+    def test_every_minute(self):
+        emailed = {("task", 1, DUE): NOW - timedelta(minutes=1)}
+        assert len(pick_email([self.task(1)], 7, emailed, NOW)) == 1
+
+    def test_loop_waking_a_bit_early_still_counts(self):
+        # Sent at :00.5, the loop wakes at :59.9 - that is "a minute later".
+        emailed = {("task", 1, DUE): NOW - timedelta(seconds=59)}
+        assert len(pick_email([self.task(1)], 7, emailed, NOW)) == 1
+
+    def test_not_before_the_interval(self):
+        emailed = {("task", 1, DUE): NOW - timedelta(hours=23)}
+        assert pick_email([self.task(1440)], 7, emailed, NOW) == []
+
+    def test_daily(self):
+        emailed = {("task", 1, DUE): NOW - timedelta(days=1)}
+        assert len(pick_email([self.task(1440)], 7, emailed, NOW)) == 1
+
+    def test_still_waits_for_the_reminder_window(self):
+        far = due_item(1, 30, kind="task", every=1)
+        assert pick_email([far], 7, {}, NOW) == []
+
+
+# --------------------------------------------------------------------------
 # texts: Latvian number agreement
 # --------------------------------------------------------------------------
 
@@ -247,3 +316,26 @@ class TestMessages:
         assert push_text(self.item(12)) == "Blood test is due in 12 days."
         assert push_text(self.item(12), "lv") == "Blood test: termiņš pēc 12 dienām."
         assert "was due 2 days ago" in push_text(self.item(-2, kind="task"))
+
+
+# --------------------------------------------------------------------------
+# lab results
+# --------------------------------------------------------------------------
+
+def test_lab_flag_against_both_limits():
+    assert lab_flag(17.8, None, 30, 100) == "low"
+    assert lab_flag(44.2, None, 30, 100) == "normal"
+    assert lab_flag(120, None, 30, 100) == "high"
+
+
+def test_lab_flag_open_ended_ranges():
+    assert lab_flag(3.4, None, None, 3.0) == "high"
+    assert lab_flag(0.9, None, 1.0, None) == "low"
+    assert lab_flag(5, None, None, None) == "normal"
+
+
+def test_lab_flag_below_detection_is_never_low():
+    # mercury "< 1.0" with an upper limit only, and a "< 2" against a lower limit of 3
+    assert lab_flag(1.0, "<", None, 10) == "normal"
+    assert lab_flag(200, ">", None, 100) == "high"
+    assert lab_flag(2, "<", 3, None) == "low"

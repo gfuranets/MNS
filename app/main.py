@@ -22,9 +22,10 @@ import notifications
 import planner
 import reminders
 from database import get_db
-from models import LogEntry, Notification, PrepPlan, User, localized
+from models import LAB_CATEGORIES, LogEntry, Notification, PrepPlan, User, localized
 from schema import (
     CalendarEntry,
+    CatalogCheck,
     CheckupDetail,
     Counts,
     DoneOut,
@@ -32,6 +33,8 @@ from schema import (
     Inbox,
     ItemChecked,
     ItemOut,
+    LabPoint,
+    LabSeries,
     LogEntryCreate,
     LogEntryOut,
     LogLine,
@@ -340,6 +343,25 @@ def month_calendar(
 # recommended checks
 # --------------------------------------------------------------------------
 
+@app.get("/api/checkups", response_model=list[CatalogCheck])
+def checkup_catalog(
+    user: User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Every state-paid check in the catalog, the ones on your schedule first."""
+    today = date.today()
+    checks = [
+        CatalogCheck(
+            id=c.id, name=localized(c, "name", user.language), category=c.category,
+            summary=localized(c, "summary", user.language), interval_months=c.interval_months,
+            min_age=c.min_age, max_age=c.max_age, sex=c.sex, source_url=c.source_url,
+            applies=planner.interval_for(c, user, user.risk_codes, today) is not None,
+        )
+        for c in crud.all_checkups(db)
+    ]
+    return sorted(checks, key=lambda c: not c.applies)
+
+
 @app.get("/api/checkups/{checkup_id}", response_model=CheckupDetail)
 def checkup_detail(
     checkup_id: int,
@@ -494,12 +516,14 @@ def list_log(
     db: Session = Depends(get_db),
 ):
     """What you did (done) and what you missed, newest first, optionally one category."""
+    reports = crud.lab_reports_by_log_entry(db, user.id)
     lines = [
         LogLine(
             kind="done", id=e.id,
             title=localized(e.checkup_type, "name", user.language) if e.checkup_type else e.title,
             category=e.category, date=e.done_on, notes=e.notes,
             attachment_name=e.attachment_name, checkup_type_id=e.checkup_type_id, task_id=e.task_id,
+            lab_report_id=reports.get(e.id),
         )
         for e in crud.list_log(db, user.id)
     ] + [
@@ -510,6 +534,35 @@ def list_log(
     if category:
         lines = [line for line in lines if line.category == category]
     return sorted(lines, key=lambda line: (line.date, line.id), reverse=True)
+
+
+# --------------------------------------------------------------------------
+# lab results
+# --------------------------------------------------------------------------
+
+@app.get("/api/labs", response_model=list[LabSeries])
+def lab_series(
+    user: User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Your blood test values, one series per test, in catalog category order."""
+    series: dict[int, LabSeries] = {}
+    for r in crud.lab_results(db, user.id):
+        test = r.lab_test
+        if test.id not in series:
+            series[test.id] = LabSeries(
+                code=test.code, name=localized(test, "name", user.language), category=test.category,
+                unit=test.unit, summary=localized(test, "summary", user.language), points=[],
+            )
+        low = float(r.ref_low) if r.ref_low is not None else None
+        high = float(r.ref_high) if r.ref_high is not None else None
+        series[test.id].points.append(LabPoint(
+            report_id=r.report_id, taken_at=r.report.taken_at, value=float(r.value),
+            comparator=r.comparator, ref_low=low, ref_high=high,
+            flag=planner.lab_flag(float(r.value), r.comparator, low, high),
+        ))
+    order = {c: i for i, c in enumerate(LAB_CATEGORIES)}
+    return sorted(series.values(), key=lambda s: (order[s.category], s.name))
 
 
 @app.post("/api/log", response_model=LogEntryOut, status_code=status.HTTP_201_CREATED)
@@ -790,7 +843,8 @@ async def check_my_reminders(
 ):
     """Run the reminder check for yourself now instead of waiting for the loop.
 
-    Same once-a-day rule as the loop, so pressing it twice does not send twice.
+    Same rules as the loop (push/SMS once a day, email once per due date),
+    so pressing it twice does not send twice.
     """
     now = datetime.now()
     report = await reminders.remind_user(db, user, now, force=True)

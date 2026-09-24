@@ -42,6 +42,7 @@ class Item:
     interval_months: int | None = None   # guideline, after risk adjustment
     task_id: int | None = None
     coverage: str | None = None
+    remind_every_minutes: int | None = None   # task only: repeat the email
     source: object = None        # the CheckupType or TaskEvent it came from
 
     @property
@@ -173,7 +174,7 @@ def task_items(pending_events: list, last_done: dict[int, date], today: date) ->
             kind="task", id=e.id, name=e.task.title, category=e.task.category,
             status=status_for(e.due_on, today), due_on=e.due_on,
             days=(e.due_on - today).days, last_done=last_done.get(e.task_id),
-            task_id=e.task_id, source=e,
+            task_id=e.task_id, remind_every_minutes=e.task.remind_every_minutes, source=e,
         )
         for e in pending_events
     ]
@@ -188,3 +189,18 @@ def next_occurrence(due_on: date, every: int | None, unit: str | None) -> date |
     if every is None or unit is None:
         return None
     return add_interval(due_on, every, unit)
+
+
+# --------------------------------------------------------------------------
+# lab results
+# --------------------------------------------------------------------------
+
+def lab_flag(value: float, comparator: str | None, low: float | None, high: float | None) -> str:
+    """low | normal | high against the range the lab printed. A result the
+    lab could only give as "< 1.0" is never low, and "> 90" never high."""
+    if low is not None and value < low and comparator != ">":
+        return "low"
+    if high is not None and value > high and comparator != "<":
+        return "high"
+    return "normal"
+

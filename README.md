@@ -8,8 +8,9 @@ Latvian. A preventive-health companion:
   check-ups and vaccinations apply to you, and when each is due.
 - **Your own plan.** Add appointments, vaccine shots, tests... repeating
   ("every 2 weeks") or on dates you pick, with the doctor's name and specialty.
-- **Reminders that don't give up.** Every day until an item is marked done,
-  in the app (a pop-up you have to Accept) and/or by SMS.
+- **Reminders by email, without the nagging.** One Gmail email per item per
+  due date, a daily SMS if you want one, and an in-app inbox behind the bell -
+  no pop-ups when you open the app.
 - **Preparation guides.** A searchable library ("gastroscopy": stop eating,
   take your passport, arrange a lift) with a checklist and timed reminders.
 - **Log and vaccination passport.** Everything done or missed, by category,
@@ -19,7 +20,8 @@ Latvian. A preventive-health companion:
 
 ```
 StartSchool_2026/
-├── query.sql           schema + seed data: guidelines, procedure library (safe to re-run)
+├── query.sql           schema + seed data: guidelines, procedure library, lab test catalog (safe to re-run)
+├── demo_data.sql       example lab results + log for the demo user (safe to re-run)
 ├── migrations/         one-off upgrades for databases made by an older query.sql
 ├── requirements.txt
 ├── tests/              pytest - planner, reminder rules, LV grammar, phone numbers
@@ -37,6 +39,7 @@ StartSchool_2026/
     ├── reminders.py    background loop: daily reminders + preparation reminders
     ├── texts.py        reminder / SMS wording in EN and LV
     ├── notifications.py  phone normalization + Twilio
+    ├── mailer.py       reminder emails through Gmail SMTP
     ├── uploads/        photos/PDFs attached to log entries (gitignored)
     └── static/         frontend (served by FastAPI)
         ├── login.html  sign in, language picker
@@ -75,6 +78,7 @@ in order, each exactly once, then `query.sql` again for the new seed data:
 ```bash
 sudo mysql < migrations/001_health_tracker.sql      # only if you still have users.birth_date + address/city
 sudo mysql < migrations/002_plans_and_procedures.sql
+sudo mysql < migrations/003_email_reminders.sql
 sudo mysql < query.sql
 ```
 
@@ -82,6 +86,18 @@ Both keep every account. 002 turns `birth_year` into a birth date of
 1 January that year (fix it in Profile), maps the old family risk factors to
 the new personal/family ones, and drops the snooze table: reminders now
 repeat daily until done. Existing users are shown the consent screen once.
+
+Re-running `query.sql` on its own also adds the lab-result tables and
+replaces the old recommended checks with the state-paid list. Checks that
+were removed stay in people's logs, just no longer linked to a guideline.
+
+**Demo data.** `demo_data.sql` gives one existing user (picked by email -
+edit `@email` at the top) two years of blood-test results and a few logged
+checks, for showing the app:
+
+```bash
+sudo mysql < demo_data.sql
+```
 
 ## 3. Create the application's database user
 
@@ -177,6 +193,7 @@ Full request/response shapes are at http://127.0.0.1:8000/docs.
 | GET | `/api/home` | Home | pop-up, status strip counts, coming up, preparations |
 | GET | `/api/schedule?source=all\|recommended\|mine` | Schedule | every item with last done and due date |
 | GET | `/api/calendar?month=2026-09` | Schedule | everything dated in a month (due, done, missed, appointments) |
+| GET | `/api/checkups` | State-paid checks | every check in the catalog, `applies` = on your schedule |
 | GET | `/api/checkups/{id}` | Item | guideline, source, more info, prep, your history |
 | POST | `/api/checkups/{id}/done` | Item | mark done (today or a past date) - clears its reminders |
 | GET / POST | `/api/tasks` | Add | your own tasks: repeating or manual dates, doctor, specialty |
@@ -188,6 +205,7 @@ Full request/response shapes are at http://127.0.0.1:8000/docs.
 | DELETE | `/api/log/{id}` | Log | remove an entry |
 | POST / GET | `/api/log/{id}/attachment` | Log | upload / download a photo or PDF (≤10 MB) |
 | GET | `/api/vaccinations` | Passport | each vaccine: doses, renew-by date |
+| GET | `/api/labs` | Blood test results | one series per test: values over time, lab's range, low/normal/high |
 | GET | `/api/procedures?q=` | Info | search the preparation library (EN or LV) |
 | GET | `/api/procedures/{id}` | Info | guide + checklist + your plans for it |
 | POST | `/api/procedures/{id}/plans` | Info | "Set reminder": appointment time + which lines to remind about |
@@ -203,20 +221,30 @@ The AI screen is interface only for now - there is no backend call yet.
 
 ### How the schedule is worked out
 
-`checkup_types` is the guideline catalog, seeded by `query.sql`. Each row says
-how often (`interval_months`) and for whom (`min_age`, `max_age`, `sex`,
-`country`). A `risk_factor` (cancer, diabetes, heart) either makes the item
-exist only for people who have it personally or in the family (`risk_only`),
-or starts it earlier and repeats it more often (`risk_min_age`,
-`risk_interval_months`) - e.g. cholesterol every 5 years from 40, but yearly
-from 20 with heart disease in the family.
+`checkup_types` is the guideline catalog, seeded by `query.sql` with the
+preventive checks the Latvian state pays for, as published by the
+[National Health Service](https://www.vmnvd.gov.lv/lv/jaunums/kadas-profilaktiskas-veselibas-parbaudes-pieaugusie-var-veikt-bez-maksas)
+and [SPKC](https://www.spkc.gov.lv/lv/vakcinacija): the yearly family doctor
+check-up, heart health assessment (40-65), blood sugar (40-72), cervical
+smear (25-29) and HPV test (30-70), mammography (50-68), bowel cancer test
+(50-74), PSA (men 50-75), the tetanus-diphtheria booster and the flu vaccine
+(65+).
+
+Each row says how often (`interval_months`) and for whom (`min_age`,
+`max_age`, `sex`, `country`). A `risk_factor` (cancer, diabetes, heart)
+either makes the item exist only for people who have it personally or in the
+family (`risk_only`), or starts it earlier and repeats it more often
+(`risk_min_age`, `risk_interval_months`) - e.g. PSA from 50, but from 45 with
+cancer in the family; blood sugar every 3 years, but yearly with diabetes in
+the family. Programmes that run at fixed ages (heart check at 40, 45 ... 65)
+are approximated with an interval.
 
 `planner.py` merges those with your own tasks: due date = last logged +
 interval, or the date you gave. Late if that is past, upcoming within 30 days,
 up to date otherwise. A recommended check never logged counts as due today -
 "no record yet", not "late".
 
-> The seeded guidelines and preparation steps are **demo content**. They have
+> The preparation steps and texts are **demo content**. They have
 > not been reviewed by a clinician, and the Latvian texts have not been
 > proofread by a native speaker. Edit `query.sql` and re-run it to change
 > them; the inserts are upserts.
@@ -226,11 +254,14 @@ up to date otherwise. A recommended check never logged counts as due today -
 `reminders.py` runs in the background every `REMINDER_EVERY_MINUTES`
 (default 5, `0` = off) and does two things:
 
-- **Daily reminders.** Anything late, or due within the user's "start
-  reminding" window (default 1 week), gets a reminder **once a day, every
-  day, until it is marked done**, from `REMINDER_SEND_HOUR` (default 9:00).
-  In the app it is a pop-up with Accept / Mark as done / Not now; until
-  accepted it keeps popping up. SMS is one combined text a day.
+- **Reminders.** Anything late, or due within the user's "start reminding"
+  window (default 1 week), is reminded from `REMINDER_SEND_HOUR` (default 9:00):
+  - **email** - **once per item per due date**. Each email row stores the
+    `due_on` it was about; the next run skips anything already emailed for
+    that date. Mark it done and the next due date gets its own email.
+  - **in the app** - a row in the inbox (bell badge), once a day until done.
+    No pop-ups.
+  - **SMS** - one combined text a day, until done.
 - **Preparation reminders.** Checklist lines you asked to be reminded about
   go out at their time (e.g. "stop eating" 8 hours before), once. If that
   time has already passed when you set it, they go out straight away.
@@ -253,6 +284,13 @@ message.
 empty in `app/.env` and SMS runs in **dry run**: each message is logged to the
 server console and recorded with status `dry_run`. Fill all three in and it
 sends for real - no code change needed.
+
+### Email (Gmail)
+
+Put `GMAIL_USER` and `GMAIL_APP_PASSWORD` in `app/.env`. The password is an
+App Password (needs 2-Step Verification on the Google account):
+https://myaccount.google.com/apppasswords. Leave them empty and email runs in
+dry run like SMS. Users switch email off under Profile > Reminders.
 
 ## Tests
 

@@ -83,6 +83,7 @@ class UserOut(BaseModel):
     reminder_lead_days: int
     remind_push: bool
     remind_sms: bool
+    remind_email: bool
     consent_at: datetime | None
     profile_complete: bool          # False -> the frontend continues onboarding
     created_at: datetime
@@ -118,6 +119,7 @@ class SettingsUpdate(BaseModel):
     reminder_lead_days: int | None = Field(default=None, ge=0, le=60)
     remind_push: bool | None = None
     remind_sms: bool | None = None
+    remind_email: bool | None = None
     phone: str | None = Field(default=None, max_length=20)
 
 
@@ -249,6 +251,8 @@ class TaskCreate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     doctor_name: str | None = Field(default=None, max_length=80)
     doctor_specialty: str | None = Field(default=None, max_length=80)
+    # None = one email per due date; otherwise repeat every N minutes until done.
+    remind_every_minutes: int | None = Field(default=None, ge=1, le=525600)
 
     _category = field_validator("category")(_clean_category)
 
@@ -281,6 +285,7 @@ class TaskOut(BaseModel):
     doctor_specialty: str | None
     repeat_every: int | None
     repeat_unit: RepeatUnit | None
+    remind_every_minutes: int | None
     created_at: datetime
     events: list[TaskEventOut]
 
@@ -320,6 +325,7 @@ class LogLine(BaseModel):
     attachment_name: str | None = None
     checkup_type_id: int | None = None
     task_id: int | None = None
+    lab_report_id: int | None = None   # a blood draw with results on the Results screen
 
 
 class VaccinationOut(BaseModel):
@@ -418,8 +424,10 @@ class ReminderRunOut(BaseModel):
     users_checked: int
     push: int
     sms: int
+    email: int
     prep: int
     dry_run: bool
+    email_dry_run: bool
 
 
 class RecipientCount(BaseModel):
@@ -453,6 +461,41 @@ class NotificationOut(BaseModel):
     skipped: int
     failed: int
     results: list[RecipientResult]
+
+
+class CatalogCheck(BaseModel):
+    """GET /api/checkups: one state-paid check, whether or not it is for you."""
+    id: int
+    name: str
+    category: str
+    summary: str
+    interval_months: int
+    min_age: int | None
+    max_age: int | None
+    sex: str | None
+    source_url: str | None
+    applies: bool                # on your schedule - /api/checkups/{id} works
+
+
+class LabPoint(BaseModel):
+    """One value of one test, from one blood draw."""
+    report_id: int
+    taken_at: datetime
+    value: float
+    comparator: Literal["<", ">"] | None   # "< 1.0" = below what the lab can measure
+    ref_low: float | None
+    ref_high: float | None
+    flag: Literal["low", "normal", "high"]
+
+
+class LabSeries(BaseModel):
+    """GET /api/labs: one test and all your values of it, oldest first."""
+    code: str
+    name: str
+    category: str
+    unit: str
+    summary: str | None
+    points: list[LabPoint]
 
 
 HomeOut.model_rebuild()

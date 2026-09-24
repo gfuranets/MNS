@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS users
     reminder_lead_days SMALLINT     NOT NULL DEFAULT 7,   -- start reminding N days before
     remind_push        BOOLEAN      NOT NULL DEFAULT TRUE,
     remind_sms         BOOLEAN      NOT NULL DEFAULT FALSE,
+    remind_email       BOOLEAN      NOT NULL DEFAULT TRUE,
 
     -- onboarding step 2: when they agreed to the plain-language data notice
     consent_at         TIMESTAMP    NULL,
@@ -117,6 +118,7 @@ CREATE TABLE IF NOT EXISTS tasks
     doctor_specialty VARCHAR(80)  NULL,
     repeat_every     SMALLINT     NULL,
     repeat_unit      ENUM ('day', 'week', 'month', 'year') NULL,
+    remind_every_minutes INT      NULL,     -- email again every N minutes until done; NULL = once per due date
     created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
@@ -237,7 +239,8 @@ CREATE TABLE IF NOT EXISTS notifications
     checkup_type_id INT           NULL,
     task_event_id   INT           NULL,
     prep_item_id    INT           NULL,
-    channel         ENUM ('push', 'sms') NOT NULL,
+    due_on          DATE          NULL,     -- the due date an email was about: one email per item per due date
+    channel         ENUM ('push', 'sms', 'email') NOT NULL,
     kind            ENUM ('overdue', 'due_soon', 'prep', 'broadcast') NOT NULL,
     message         VARCHAR(1000) NOT NULL,
     status          ENUM ('delivered', 'sent', 'dry_run', 'skipped', 'failed') NOT NULL,
@@ -253,13 +256,81 @@ CREATE TABLE IF NOT EXISTS notifications
 ) ENGINE = InnoDB;
 
 
+-- ---------------------------------------------------------------------------
+-- lab results
+--
+-- One blood draw (lab_reports) has many measured values (lab_results), each
+-- of a test from the lab_tests catalog. The reference range is stored on
+-- every result as the lab printed it: ranges differ between labs, by sex and
+-- by age, so the catalog only holds a typical adult range for display when
+-- the report did not give one.
+-- ---------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS lab_tests
+(
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    code       VARCHAR(40)   NOT NULL UNIQUE,
+    name       VARCHAR(80)   NOT NULL,
+    name_lv    VARCHAR(80)   NULL,
+    category   ENUM ('vitamin', 'mineral', 'heavy_metal', 'blood_count',
+                     'metabolic', 'lipid', 'hormone', 'inflammation') NOT NULL,
+    unit       VARCHAR(20)   NOT NULL,
+    ref_low    DECIMAL(10, 3) NULL,     -- NULL = no lower limit
+    ref_high   DECIMAL(10, 3) NULL,     -- NULL = no upper limit
+    summary    VARCHAR(300)  NULL,
+    summary_lv VARCHAR(300)  NULL
+) ENGINE = InnoDB;
+
+-- One blood draw / lab visit. log_entry_id links it to the log (and the
+-- scanned PDF attached there) when the user logged the visit too.
+CREATE TABLE IF NOT EXISTS lab_reports
+(
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    user_id      INT         NOT NULL,
+    taken_at     DATETIME    NOT NULL,  -- when the sample was taken
+    lab_name     VARCHAR(80) NULL,
+    log_entry_id INT         NULL,
+    notes        TEXT        NULL,
+    created_at   TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (log_entry_id) REFERENCES log_entries (id) ON DELETE SET NULL,
+    INDEX idx_lab_user_time (user_id, taken_at)
+) ENGINE = InnoDB;
+
+-- One measured value. comparator is set for results below/above what the
+-- lab can measure, e.g. mercury "< 1.0" is stored as value 1.0, comparator '<'.
+CREATE TABLE IF NOT EXISTS lab_results
+(
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    report_id   INT            NOT NULL,
+    lab_test_id INT            NOT NULL,
+    value       DECIMAL(10, 3) NOT NULL,
+    comparator  ENUM ('<', '>') NULL,
+    ref_low     DECIMAL(10, 3) NULL,
+    ref_high    DECIMAL(10, 3) NULL,
+
+    UNIQUE KEY uq_report_test (report_id, lab_test_id),
+    FOREIGN KEY (report_id) REFERENCES lab_reports (id) ON DELETE CASCADE,
+    FOREIGN KEY (lab_test_id) REFERENCES lab_tests (id),   -- catalog rows are never deleted
+    INDEX idx_result_test (lab_test_id)
+) ENGINE = InnoDB;
+
+
 -- ===========================================================================
 -- SEED DATA
 --
--- DEMO CONTENT. Intervals, age ranges and preparation steps are a reasonable
--- starting point for Latvia but have NOT been reviewed by a clinician, and
--- the Latvian texts have not been proofread by a native speaker. Check both
--- before relying on them.
+-- checkup_types = the preventive checks the Latvian state pays for, as listed
+-- by the National Health Service (NVD) and the Centre for Disease Prevention
+-- and Control (SPKC):
+--   https://www.vmnvd.gov.lv/lv/jaunums/kadas-profilaktiskas-veselibas-parbaudes-pieaugusie-var-veikt-bez-maksas  (09.09.2025)
+--   https://www.vmnvd.gov.lv/lv/jaunums/dzemdes-kakla-veza-skrinings-klust-efektivaks  (HPV test from 01.07.2025)
+--   https://www.vmnvd.gov.lv/lv/prostatas-profilaktiska-parbaude
+--   https://www.spkc.gov.lv/lv/vakcinacija
+-- Where the programme uses fixed ages (heart check at 40, 45 ... 65; breast
+-- invitations at even ages) the row approximates it with an interval.
+-- Procedure preparation steps are demo content, not reviewed by a clinician,
+-- and the Latvian texts have not been proofread by a native speaker.
 -- ===========================================================================
 
 INSERT INTO checkup_types
@@ -267,117 +338,85 @@ INSERT INTO checkup_types
  risk_factor, risk_only, risk_interval_months, risk_min_age,
  summary, summary_lv, more_info, preparation, source_url, procedure_code)
 VALUES
-('cervical_screening', 'Cervical screening', 'Dzemdes kakla skrīnings', 'screening', 'state', 36, 25, 65, 'female', 'Latvia',
+('family_doctor_checkup', 'Yearly check-up with your family doctor', 'Ikgadējā profilaktiskā apskate pie ģimenes ārsta', 'checkup', 'state', 12, 18, NULL, NULL, 'Latvia',
  NULL, FALSE, NULL, NULL,
- 'Recommended every 3 years for ages 25-65, per Latvia''s national screening programme.',
- 'Ieteicams reizi 3 gados vecumā no 25 līdz 65 gadiem, saskaņā ar Latvijas valsts skrīninga programmu.',
- 'A cervical smear looks for cell changes in the cervix before they can turn into cancer. Most cervical cancers are caused by long-lasting HPV infection. Risk is higher for smokers and people with a weakened immune system. Changes found early are easy to treat.',
- 'Book for a day when you are not on your period. Avoid intercourse, tampons, and vaginal creams for 48 hours before. The test itself takes a few minutes.',
- 'https://www.vmnvd.gov.lv', 'cervical_smear'),
+ 'Free once a year for every adult who has not seen their family doctor about an illness that year.',
+ 'Bez maksas reizi gadā ikvienam pieaugušajam, kurš tajā gadā nav apmeklējis ģimenes ārstu slimības dēļ.',
+ 'The doctor measures blood pressure, pulse, weight and height, checks skin, heart, lungs and lymph nodes, and asks about sight, hearing and how you feel. It is also the visit where the doctor orders the other state-paid checks that fit your age.',
+ 'Bring a list of the medicines you take and any results from other doctors. Write down questions beforehand.',
+ 'https://www.vmnvd.gov.lv/lv/jaunums/kadas-profilaktiskas-veselibas-parbaudes-pieaugusie-var-veikt-bez-maksas', NULL),
 
-('breast_screening', 'Mammography', 'Mamogrāfija', 'screening', 'state', 24, 50, 69, 'female', 'Latvia',
- 'cancer', FALSE, 12, 40,
- 'Recommended every 2 years for ages 50-69, per Latvia''s national screening programme.',
- 'Ieteicama reizi 2 gados vecumā no 50 līdz 69 gadiem, saskaņā ar Latvijas valsts skrīninga programmu.',
- 'A mammogram is a low-dose X-ray of the breast that can find tumours too small to feel. A close relative with breast or ovarian cancer raises your risk - talk to your doctor about starting earlier.',
- 'Do not use deodorant, powder or lotion on the day - they can show up on the X-ray. Wear a two-piece outfit. Bring previous mammograms if you have them.',
- 'https://www.vmnvd.gov.lv', 'mammography'),
+('heart_health', 'Heart health assessment', 'Sirds veselības novērtējums', 'checkup', 'state', 60, 40, 65, NULL, 'Latvia',
+ NULL, FALSE, NULL, NULL,
+ 'Free at ages 40, 45, 50, 55, 60 and 65 during the yearly family doctor visit: SCORE risk, lipid panel and ECG.',
+ 'Bez maksas 40, 45, 50, 55, 60 un 65 gadu vecumā ikgadējās ģimenes ārsta apskates laikā: SCORE risks, lipīdu profils un EKG.',
+ 'The doctor combines your age, sex, blood pressure, cholesterol and smoking into a SCORE estimate of your 10-year risk of a fatal heart attack or stroke, and records an ECG. High cholesterol and blood pressure cause no symptoms until damage is done.',
+ 'Fast for 9-12 hours before the blood draw - water is fine. Take your usual medicines unless told otherwise.',
+ 'https://www.vmnvd.gov.lv/lv/jaunums/kadas-profilaktiskas-veselibas-parbaudes-pieaugusie-var-veikt-bez-maksas', 'blood_test_fasting'),
 
-('colorectal_screening', 'Bowel cancer screening', 'Zarnu vēža skrīnings', 'screening', 'state', 24, 50, 74, NULL, 'Latvia',
- 'cancer', FALSE, 12, 40,
- 'A home stool test every 2 years for ages 50-74, per Latvia''s national screening programme.',
- 'Mājās veicams fēču tests reizi 2 gados vecumā no 50 līdz 74 gadiem, saskaņā ar Latvijas valsts skrīninga programmu.',
- 'The test looks for hidden blood in stool, an early sign of bowel polyps or cancer. Family history of bowel cancer, inflammatory bowel disease and smoking all raise the risk.',
- 'Get the test kit from your family doctor. Follow the kit instructions, and return the sample within the time stated on it.',
- 'https://www.vmnvd.gov.lv', NULL),
+('blood_glucose', 'Blood sugar test', 'Glikozes līmeņa pārbaude', 'checkup', 'state', 36, 40, 72, NULL, 'Latvia',
+ 'diabetes', FALSE, 12, NULL,
+ 'Free fasting glucose test at 40, then every 3 years from 45 to 72 - yearly if you are overweight and diabetes runs in your family.',
+ 'Bez maksas glikozes analīze tukšā dūšā 40 gadu vecumā, pēc tam reizi 3 gados no 45 līdz 72 gadiem - katru gadu, ja ir liekais svars un diabēts ģimenē.',
+ 'Type 2 diabetes develops slowly and often without symptoms. A parent or sibling with diabetes, a BMI of 25 or more, and inactivity all raise the risk; the state then pays for a yearly test.',
+ 'Eat nothing for 8 hours beforehand - water is fine.',
+ 'https://www.vmnvd.gov.lv/lv/jaunums/kadas-profilaktiskas-veselibas-parbaudes-pieaugusie-var-veikt-bez-maksas', 'blood_test_fasting'),
 
-('prostate_check', 'Prostate check (PSA)', 'Prostatas pārbaude (PSA)', 'screening', 'private', 24, 50, 75, 'male', NULL,
- 'cancer', FALSE, 12, 45,
- 'A PSA blood test every 2 years from age 50 - discuss the pros and cons with your doctor first.',
- 'PSA asins analīze reizi 2 gados no 50 gadu vecuma - vispirms pārrunājiet ieguvumus un riskus ar ārstu.',
- 'PSA is a protein made by the prostate; a raised level can mean cancer, but also infection or enlargement. A father or brother with prostate cancer raises your risk.',
+('cervical_cytology', 'Cervical smear (cytology)', 'Dzemdes kakla uztriepe (citoloģija)', 'screening', 'state', 36, 25, 29, 'female', 'Latvia',
+ NULL, FALSE, NULL, NULL,
+ 'Free every 3 years for women aged 25-29. The state sends an invitation letter.',
+ 'Bez maksas reizi 3 gados sievietēm vecumā no 25 līdz 29 gadiem. Valsts nosūta uzaicinājuma vēstuli.',
+ 'A smear looks for cell changes in the cervix before they can turn into cancer. Most cervical cancers are caused by long-lasting HPV infection. Changes found early are easy to treat.',
+ 'Book for a day when you are not on your period. Avoid intercourse, tampons and vaginal creams for 48 hours before.',
+ 'https://www.vmnvd.gov.lv/lv/dzemdes-kakla-un-krusu-profilaktiskas-parbaudes', 'cervical_smear'),
+
+('cervical_screening', 'Cervical HPV test', 'Dzemdes kakla CPV tests', 'screening', 'state', 60, 30, 70, 'female', 'Latvia',
+ NULL, FALSE, NULL, NULL,
+ 'Free every 5 years for women aged 30-70 - an HPV test since July 2025. The state sends an invitation letter.',
+ 'Bez maksas reizi 5 gados sievietēm vecumā no 30 līdz 70 gadiem - kopš 2025. gada jūlija ar CPV testu. Valsts nosūta uzaicinājuma vēstuli.',
+ 'The sample is tested for the high-risk human papillomavirus (HPV) that causes almost all cervical cancer. Negative means the next test is in 5 years; positive means the same sample is also checked for cell changes.',
+ 'Book for a day when you are not on your period. Avoid intercourse, tampons and vaginal creams for 48 hours before.',
+ 'https://www.vmnvd.gov.lv/lv/jaunums/dzemdes-kakla-veza-skrinings-klust-efektivaks', 'cervical_smear'),
+
+('breast_screening', 'Mammography', 'Mamogrāfija', 'screening', 'state', 24, 50, 68, 'female', 'Latvia',
+ NULL, FALSE, NULL, NULL,
+ 'Free every 2 years for women aged 50-68. The state sends an invitation letter.',
+ 'Bez maksas reizi 2 gados sievietēm vecumā no 50 līdz 68 gadiem. Valsts nosūta uzaicinājuma vēstuli.',
+ 'A mammogram is a low-dose X-ray of the breast that can find tumours too small to feel. A close relative with breast or ovarian cancer raises your risk - ask your doctor about checks before 50.',
+ 'Do not use deodorant, powder or lotion on the day. Wear a two-piece outfit. Bring previous mammograms if you have them.',
+ 'https://www.vmnvd.gov.lv/lv/dzemdes-kakla-un-krusu-profilaktiskas-parbaudes', 'mammography'),
+
+('colorectal_screening', 'Bowel cancer screening', 'Zarnu vēža profilaktiskā pārbaude', 'screening', 'state', 24, 50, 74, NULL, 'Latvia',
+ NULL, FALSE, NULL, NULL,
+ 'A free home stool test every 2 years for everyone aged 50-74. Ask your family doctor for the kit.',
+ 'Bez maksas mājās veicams fēču tests reizi 2 gados ikvienam vecumā no 50 līdz 74 gadiem. Testu izsniedz ģimenes ārsts.',
+ 'The test looks for hidden blood in stool, an early sign of bowel polyps or cancer. A positive result means a free colonoscopy. The newer test needs no diet changes.',
+ 'Get the kit from your family doctor, follow its instructions, and return the sample within the time stated on it.',
+ 'https://www.vmnvd.gov.lv/lv/veza-profilaktiskas-parbaudes', NULL),
+
+('prostate_check', 'Prostate check (PSA)', 'Prostatas profilaktiskā pārbaude (PSA)', 'screening', 'state', 24, 50, 75, 'male', 'Latvia',
+ 'cancer', FALSE, NULL, 45,
+ 'A free PSA blood test every 2 years for men aged 50-75, from 45 if prostate cancer runs in the family.',
+ 'Bez maksas PSA asins analīze reizi 2 gados vīriešiem vecumā no 50 līdz 75 gadiem, no 45 gadiem, ja ģimenē ir bijis prostatas vēzis.',
+ 'PSA is a protein made by the prostate; a raised level can mean cancer, but also infection or enlargement. A raised result gets you a urologist appointment through the "green corridor", outside the usual waiting list.',
  'Avoid ejaculation and cycling for 48 hours before the blood draw - both can raise PSA temporarily.',
- NULL, NULL),
+ 'https://www.vmnvd.gov.lv/lv/prostatas-profilaktiska-parbaude', NULL),
 
-('blood_test', 'Blood test', 'Asins analīzes', 'checkup', 'state', 12, 18, NULL, NULL, NULL,
+('tetanus_diphtheria', 'Tetanus & diphtheria booster', 'Stingumkrampju un difterijas revakcinācija', 'vaccination', 'state', 120, 18, NULL, NULL, 'Latvia',
  NULL, FALSE, NULL, NULL,
- 'A basic blood count once a year, usually ordered by your family doctor.',
- 'Pilna asins aina reizi gadā, parasti pēc ģimenes ārsta nosūtījuma.',
- 'A complete blood count checks red cells, white cells and platelets. It can show anaemia, infection and many other conditions before they cause symptoms.',
- 'Usually no fasting needed for a blood count alone - but if glucose or cholesterol are added, fast for 8-12 hours (water is fine).',
- NULL, 'blood_test_fasting'),
-
-('cholesterol', 'Cholesterol check', 'Holesterīna pārbaude', 'checkup', 'state', 60, 40, NULL, NULL, NULL,
- 'heart', FALSE, 12, 20,
- 'A lipid panel every 5 years from 40 - yearly from 20 if you or your family have heart disease.',
- 'Lipīdu profils reizi 5 gados no 40 gadu vecuma - katru gadu no 20 gadiem, ja jums vai ģimenē ir sirds slimības.',
- 'High cholesterol has no symptoms but builds up in artery walls, raising the risk of heart attack and stroke. Inherited high cholesterol (familial hypercholesterolaemia) can start in childhood.',
- 'Fast for 9-12 hours beforehand - water is fine. Take your usual medicines unless told otherwise.',
- NULL, 'blood_test_fasting'),
-
-('blood_glucose', 'Blood sugar test', 'Cukura līmeņa pārbaude', 'checkup', 'state', 36, 45, NULL, NULL, NULL,
- 'diabetes', FALSE, 12, 30,
- 'A fasting glucose or HbA1c test every 3 years from 45 - yearly from 30 if diabetes affects you or your family.',
- 'Glikozes vai HbA1c analīze reizi 3 gados no 45 gadu vecuma - katru gadu no 30 gadiem, ja diabēts ir jums vai ģimenē.',
- 'Type 2 diabetes develops slowly and often without symptoms. A parent or sibling with diabetes, being overweight, and inactivity all raise the risk.',
- 'For fasting glucose, eat nothing for 8 hours beforehand - water is fine. HbA1c needs no fasting.',
- NULL, 'blood_test_fasting'),
-
-('blood_pressure', 'Blood pressure check', 'Asinsspiediena pārbaude', 'checkup', 'state', 12, 18, NULL, NULL, NULL,
- 'heart', FALSE, 6, 18,
- 'Have your blood pressure measured at least once a year.',
- 'Mēriet asinsspiedienu vismaz reizi gadā.',
- 'High blood pressure rarely causes symptoms but is a leading cause of stroke and heart disease.',
- 'No caffeine, exercise or smoking for 30 minutes before. Sit quietly for 5 minutes first.',
- NULL, NULL),
-
-('skin_check', 'Skin check', 'Ādas pārbaude', 'screening', 'private', 12, 18, NULL, NULL, NULL,
- 'cancer', TRUE, NULL, NULL,
- 'A yearly mole check by a dermatologist, since cancer affects you or your family.',
- 'Ikgadēja dzimumzīmju pārbaude pie dermatologa, jo vēzis ir bijis jums vai ģimenē.',
- 'A dermatologist checks moles and skin spots for signs of melanoma and other skin cancers. Fair skin, many moles, sunburns and family history raise the risk.',
- 'Remove nail polish and make-up. Note any mole that has changed in size, shape or colour.',
- NULL, NULL),
-
-('dental_checkup', 'Dental check-up', 'Zobārsta apskate', 'checkup', 'private', 12, 18, NULL, NULL, NULL,
- NULL, FALSE, NULL, NULL,
- 'A dental check-up and cleaning once a year.',
- 'Zobārsta apskate un zobu tīrīšana reizi gadā.',
- 'Regular check-ups catch decay and gum disease early, when treatment is quick and cheap.',
- 'Brush and floss beforehand. Bring a list of medicines you take.',
- NULL, NULL),
-
-('eye_exam', 'Eye exam', 'Redzes pārbaude', 'checkup', 'private', 24, 40, NULL, NULL, NULL,
- 'diabetes', FALSE, 12, 30,
- 'An eye exam every 2 years from 40 - glaucoma risk rises with age.',
- 'Redzes pārbaude reizi 2 gados no 40 gadu vecuma - glaukomas risks pieaug ar vecumu.',
- 'An eye exam checks sight and eye pressure, and looks for glaucoma and diabetic eye disease, which cause no symptoms early on.',
- 'Bring your current glasses or contact lenses. Your pupils may be dilated - do not plan to drive straight after.',
- NULL, 'eye_dilation'),
-
-('tbe_booster', 'Encephalitis booster', 'Ērču encefalīta revakcinācija', 'vaccination', 'private', 60, 1, NULL, NULL, 'Latvia',
- NULL, FALSE, NULL, NULL,
- 'A tick-borne encephalitis booster every 5 years - Latvia is a high-risk area.',
- 'Ērču encefalīta revakcinācija reizi 5 gados - Latvija ir augsta riska teritorija.',
- 'Tick-borne encephalitis is a viral brain infection spread by tick bites. Latvia has one of the highest rates in Europe. After the first 3 doses, a booster keeps protection up.',
- 'No preparation needed. Bring your vaccination record so the dose can be written in.',
- 'https://www.spkc.gov.lv', 'vaccination'),
-
-('tetanus_diphtheria', 'Tetanus & diphtheria booster', 'Stingumkrampju un difterijas revakcinācija', 'vaccination', 'state', 120, 18, NULL, NULL, NULL,
- NULL, FALSE, NULL, NULL,
- 'A tetanus-diphtheria booster every 10 years for adults.',
- 'Pieaugušajiem stingumkrampju un difterijas revakcinācija reizi 10 gados.',
+ 'A free tetanus-diphtheria booster every 10 years for every adult, at your family doctor.',
+ 'Bez maksas stingumkrampju un difterijas revakcinācija reizi 10 gados ikvienam pieaugušajam, pie ģimenes ārsta.',
  'Tetanus enters through wounds and diphtheria spreads between people; both can be fatal. Protection fades, so adults need a booster every 10 years.',
  'No preparation needed. Bring your vaccination record so the dose can be written in.',
- 'https://www.spkc.gov.lv', 'vaccination'),
+ 'https://www.spkc.gov.lv/lv/vakcinacija', 'vaccination'),
 
-('flu_vaccine', 'Flu vaccine', 'Gripas vakcīna', 'vaccination', 'private', 12, 18, NULL, NULL, NULL,
+('flu_vaccine', 'Flu vaccine', 'Vakcīna pret gripu', 'vaccination', 'state', 12, 65, NULL, NULL, 'Latvia',
  NULL, FALSE, NULL, NULL,
- 'A flu vaccine every autumn - the strains change each year.',
- 'Gripas vakcīna katru rudeni - vīrusa celmi katru gadu mainās.',
- 'Flu vaccines are updated every year to match the strains expected that winter. They matter most for people over 65, pregnant people, and anyone with a chronic illness.',
+ 'A flu vaccine every autumn, paid by the state for people 65 and over and other risk groups.',
+ 'Vakcīna pret gripu katru rudeni, ko valsts apmaksā cilvēkiem no 65 gadiem un citām riska grupām.',
+ 'Flu vaccines are updated every year to match the strains expected that winter. They matter most for older people, pregnant people and anyone with a chronic illness. Ask your family doctor whether you are in a state-paid group this season.',
  'No preparation needed. Tell the nurse if you have a fever on the day.',
- NULL, 'vaccination')
+ 'https://www.spkc.gov.lv/lv/valsts-apmaksata-vakcinacija-pret-sezonalo-gripu', 'vaccination')
 
 -- MySQL 8.0.20+ prefers the alias form over VALUES(col) in the update list.
 AS new
@@ -388,6 +427,13 @@ ON DUPLICATE KEY UPDATE
     risk_interval_months = new.risk_interval_months, risk_min_age = new.risk_min_age,
     summary = new.summary, summary_lv = new.summary_lv, more_info = new.more_info,
     preparation = new.preparation, source_url = new.source_url, procedure_code = new.procedure_code;
+
+-- Checks that were in earlier versions of this file but are not state-paid
+-- programmes. Log entries and reminders that pointed at them keep their
+-- title and category; only the link is cleared (ON DELETE SET NULL).
+DELETE FROM checkup_types
+WHERE code IN ('blood_test', 'blood_pressure', 'cholesterol', 'skin_check',
+               'dental_checkup', 'eye_exam', 'tbe_booster');
 
 
 INSERT INTO procedures (code, name, name_lv, keywords, summary, summary_lv)
@@ -517,3 +563,74 @@ JOIN (
 ) AS s ON s.code = p.code
 ON DUPLICATE KEY UPDATE
     text = s.text, text_lv = s.text_lv, hours_before = s.hours_before;
+
+
+-- Lab test catalog. Ranges are typical adult values for display only; the
+-- range that counts is the one stored on each result.
+INSERT INTO lab_tests (code, name, name_lv, category, unit, ref_low, ref_high, summary, summary_lv)
+VALUES
+('vitamin_d',     'Vitamin D (25-OH)',  'D vitamīns (25-OH)',      'vitamin',      'ng/mL',    30,    100,
+ 'Low levels are very common in Latvia from October to April, when the sun is too low to make vitamin D in the skin.',
+ 'Zems līmenis Latvijā ir ļoti bieži no oktobra līdz aprīlim, kad saule ir par zemu, lai ādā veidotos D vitamīns.'),
+('vitamin_b12',   'Vitamin B12',        'B12 vitamīns',            'vitamin',      'pg/mL',   200,    900,
+ 'Needed for nerves and red blood cells. Low in vegans and in people with some stomach problems.',
+ 'Nepieciešams nervu sistēmai un sarkanajām asins šūnām. Zems vegāniem un cilvēkiem ar dažām kuņģa slimībām.'),
+('folate',        'Folate (B9)',        'Folskābe (B9)',           'vitamin',      'ng/mL',   3.9,     20,
+ 'Needed to make new cells. Comes from leafy greens and legumes.',
+ 'Nepieciešama jaunu šūnu veidošanai. Iegūst no zaļajiem lapu dārzeņiem un pākšaugiem.'),
+('iron',          'Iron (serum)',       'Dzelzs (serumā)',         'mineral',      'µmol/L', 12.5,   32.2,
+ 'Iron in the blood right now - changes during the day, so read it together with ferritin.',
+ 'Dzelzs asinīs šobrīd - mainās dienas laikā, tāpēc to vērtē kopā ar feritīnu.'),
+('ferritin',      'Ferritin',           'Feritīns',                'mineral',      'µg/L',     30,    400,
+ 'The body''s iron store. Low ferritin is the earliest sign of iron deficiency.',
+ 'Organisma dzelzs krājumi. Zems feritīns ir agrākā dzelzs deficīta pazīme.'),
+('magnesium',     'Magnesium',          'Magnijs',                 'mineral',      'mmol/L', 0.66,   1.07,
+ 'Needed for muscles and nerves. Cramps and twitching can be a sign of a low level.',
+ 'Nepieciešams muskuļiem un nerviem. Krampji un raustīšanās var liecināt par zemu līmeni.'),
+('zinc',          'Zinc',               'Cinks',                   'mineral',      'µmol/L', 11.0,   18.0,
+ 'Needed for immunity and wound healing.',
+ 'Nepieciešams imunitātei un brūču dzīšanai.'),
+('calcium',       'Calcium (total)',    'Kalcijs (kopējais)',      'mineral',      'mmol/L', 2.15,   2.55,
+ 'Kept in a narrow range by the body - an abnormal value usually points to a hormone or kidney problem, not diet.',
+ 'Organisms to uztur šaurās robežās - novirze parasti liecina par hormonu vai nieru problēmu, nevis uzturu.'),
+('copper',        'Copper',             'Varš',                    'mineral',      'µmol/L', 11.0,   22.0,
+ 'A trace metal needed for iron use and nerves.',
+ 'Mikroelements, kas nepieciešams dzelzs izmantošanai un nerviem.'),
+('lead',          'Lead (blood)',       'Svins (asinīs)',          'heavy_metal',  'µg/L',    NULL,   50,
+ 'A toxic metal with no safe level. Sources: old paint, some hobbies (shooting, soldering), contaminated water.',
+ 'Toksisks metāls bez droša līmeņa. Avoti: veca krāsa, daži vaļasprieki (šaušana, lodēšana), piesārņots ūdens.'),
+('mercury',       'Mercury (blood)',    'Dzīvsudrabs (asinīs)',    'heavy_metal',  'µg/L',    NULL,   10,
+ 'Mostly from large predatory fish (tuna, swordfish). Rises with how much of them you eat.',
+ 'Galvenokārt no lielām plēsīgām zivīm (tuncis, zobenzivs). Pieaug līdz ar to patēriņu.'),
+('hemoglobin',    'Haemoglobin',        'Hemoglobīns',             'blood_count',  'g/L',      130,    170,
+ 'Carries oxygen in red blood cells. Low means anaemia.',
+ 'Pārnēsā skābekli sarkanajās asins šūnās. Zems līmenis nozīmē anēmiju.'),
+('wbc',           'White blood cells',  'Leikocīti',               'blood_count',  '10^9/L',   4.0,   10.0,
+ 'Infection-fighting cells. High during an infection, low with some medicines and illnesses.',
+ 'Šūnas, kas cīnās ar infekcijām. Augsts līmenis infekcijas laikā, zems - lietojot dažas zāles vai slimojot.'),
+('glucose',       'Glucose (fasting)',  'Glikoze (tukšā dūšā)',    'metabolic',    'mmol/L',   3.9,    5.6,
+ 'Blood sugar after 8 hours without food. 5.6-6.9 is prediabetes, 7.0 and above suggests diabetes.',
+ 'Cukura līmenis pēc 8 stundām bez ēdiena. 5,6-6,9 ir prediabēts, 7,0 un vairāk liecina par diabētu.'),
+('cholesterol_total', 'Total cholesterol', 'Kopējais holesterīns', 'lipid',        'mmol/L',  NULL,    5.0,
+ 'All cholesterol in the blood. Read it together with LDL and HDL.',
+ 'Viss holesterīns asinīs. To vērtē kopā ar ZBL un ABL.'),
+('ldl',           'LDL cholesterol',    'ZBL holesterīns',         'lipid',        'mmol/L',  NULL,    3.0,
+ 'The "bad" cholesterol that builds up in artery walls.',
+ '"Sliktais" holesterīns, kas uzkrājas artēriju sieniņās.'),
+('hdl',           'HDL cholesterol',    'ABL holesterīns',         'lipid',        'mmol/L',   1.0,   NULL,
+ 'The "good" cholesterol that carries fat away from arteries. Higher is better.',
+ '"Labais" holesterīns, kas aizvada taukus no artērijām. Jo augstāks, jo labāk.'),
+('triglycerides', 'Triglycerides',      'Triglicerīdi',            'lipid',        'mmol/L',  NULL,    1.7,
+ 'Blood fats that rise after sugary food and alcohol.',
+ 'Tauki asinīs, kas pieaug pēc saldiem ēdieniem un alkohola.'),
+('tsh',           'TSH (thyroid)',      'TSH (vairogdziedzeris)',  'hormone',      'mIU/L',   0.4,    4.0,
+ 'Controls the thyroid. High TSH means an underactive thyroid, low means overactive.',
+ 'Regulē vairogdziedzeri. Augsts TSH nozīmē pazeminātu funkciju, zems - paaugstinātu.'),
+('crp',           'C-reactive protein', 'C-reaktīvais olbaltums',  'inflammation', 'mg/L',     NULL,    5.0,
+ 'Rises within hours of an infection or inflammation anywhere in the body.',
+ 'Pieaug dažu stundu laikā pēc infekcijas vai iekaisuma jebkurā ķermeņa vietā.')
+AS new
+ON DUPLICATE KEY UPDATE
+    name = new.name, name_lv = new.name_lv, category = new.category, unit = new.unit,
+    ref_low = new.ref_low, ref_high = new.ref_high,
+    summary = new.summary, summary_lv = new.summary_lv;
