@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Health Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- One page, many screens. script.js renders the screen named in the URL
+     hash (#/home, #/schedule, #/checkup/3 ...) into #view. -->
+<div class="phone">
+  <header class="topbar" id="topbar"></header>
+  <main class="content" id="view"></main>
+  <nav class="tabbar" id="tabbar" aria-label="Main" hidden></nav>
+</div>
+
+<div id="modal-root"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="i18n.js"></script>
+<script src="icons.js"></script>
+<script src="auth.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>

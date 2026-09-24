@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="phone auth-page">
+  <header class="topbar">
+    <a class="icon-btn plain" href="login.html" id="back"></a>
+    <h1 data-i18n="signup.title"></h1>
+    <select id="lang" class="lang-pick" aria-label="Language"></select>
+  </header>
+
+  <main class="content">
+    <div class="steps">
+      <i class="on"></i><i></i><i></i><span id="step"></span>
+    </div>
+
+    <form id="signup-form">
+      <div class="two">
+        <label class="field">
+          <span data-i18n="signup.name"></span>
+          <input type="text" id="name" required maxlength="40" autocomplete="given-name">
+        </label>
+        <label class="field">
+          <span data-i18n="signup.surname"></span>
+          <input type="text" id="surname" required maxlength="40" autocomplete="family-name">
+        </label>
+      </div>
+      <label class="field">
+        <span data-i18n="login.email"></span>
+        <input type="email" id="email" required autocomplete="email" placeholder="you@example.com">
+      </label>
+      <label class="field">
+        <span data-i18n="login.password"></span>
+        <input type="password" id="password" required minlength="8" maxlength="72" autocomplete="new-password">
+      </label>
+      <p class="hint" data-i18n="signup.password_hint"></p>
+      <label class="field">
+        <span><span data-i18n="signup.phone"></span> <span class="muted">(<span data-i18n="common.optional"></span>)</span></span>
+        <input type="tel" id="phone" maxlength="20" autocomplete="tel" placeholder="20 123 456">
+      </label>
+      <p class="hint" data-i18n="signup.phone_hint"></p>
+
+      <div class="form-foot">
+        <button type="submit" class="btn primary" data-i18n="common.continue"></button>
+      </div>
+      <p class="message" id="message"></p>
+    </form>
+
+    <p class="auth-alt"><span data-i18n="signup.have_account"></span> <a href="login.html" data-i18n="login.submit"></a></p>
+  </main>
+</div>
+
+<script src="i18n.js"></script>
+<script src="icons.js"></script>
+<script src="auth.js"></script>
+<script>
+  const picker = document.getElementById("lang");
+  for (const [code, label] of Object.entries(LANGS)) picker.add(new Option(label, code, false, code === lang));
+  const translate = () => {
+    applyI18n();
+    document.getElementById("step").textContent = t("signup.step", { n: 1 });
+    document.getElementById("back").setAttribute("aria-label", t("common.back"));
+  };
+  picker.addEventListener("change", () => { setLang(picker.value); translate(); });
+  document.getElementById("back").append(icon("back"));
+  translate();
+
+  const form = document.getElementById("signup-form");
+  const message = document.getElementById("message");
+  const value = (id) => document.getElementById(id).value.trim();
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = form.querySelector("button");
+    button.disabled = true;
+    showMessage(message, "");
+
+    const credentials = { email: value("email"), password: document.getElementById("password").value };
+
+    try {
+      await api("/api/signup", {
+        method: "POST",
+        body: {
+          ...credentials, name: value("name"), surname: value("surname"),
+          phone: value("phone") || null, language: lang,
+        },
+      });
+
+      // Signing up does not return a token, so log in straight away.
+      // index.html sees the unfinished onboarding and continues with step 2.
+      const session = await api("/api/login", { method: "POST", body: credentials });
+      token.set(session.access_token);
+      window.location.replace("index.html");
+    } catch (error) {
+      showMessage(message, error.message);
+      button.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

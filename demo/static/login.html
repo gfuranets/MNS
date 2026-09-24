@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Health Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="phone auth-page">
+  <header class="topbar">
+    <h1 data-i18n="login.title"></h1>
+    <select id="lang" class="lang-pick" aria-label="Language"></select>
+  </header>
+
+  <main class="content">
+    <div class="brand">
+      <div class="logo" id="logo"></div>
+      <h2 data-i18n="app.name"></h2>
+      <p class="muted" data-i18n="app.tagline"></p>
+    </div>
+
+    <form id="login-form">
+      <label class="field">
+        <span data-i18n="login.email"></span>
+        <input type="email" id="email" required autocomplete="email" placeholder="you@example.com" value="user.demo@example.com">
+      </label>
+      <label class="field">
+        <span data-i18n="login.password"></span>
+        <input type="password" id="password" required autocomplete="current-password" value="demo">
+      </label>
+
+      <div class="form-foot">
+        <button type="submit" class="btn primary" data-i18n="login.submit"></button>
+      </div>
+      <p class="message" id="message"></p>
+    </form>
+
+    <p class="auth-alt"><span data-i18n="login.new"></span> <a href="signup.html" data-i18n="login.create"></a></p>
+    <p class="auth-foot" data-i18n="login.privacy"></p>
+  </main>
+</div>
+
+<script src="i18n.js"></script>
+<script src="icons.js"></script>
+<script src="auth.js"></script>
+<script>
+  // Language first: it is visible before login, as the design asks.
+  const picker = document.getElementById("lang");
+  for (const [code, label] of Object.entries(LANGS)) picker.add(new Option(label, code, false, code === lang));
+  picker.addEventListener("change", () => { setLang(picker.value); applyI18n(); });
+  document.getElementById("logo").append(icon("heart"));
+  applyI18n();
+
+  const form = document.getElementById("login-form");
+  const message = document.getElementById("message");
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = form.querySelector("button");
+    button.disabled = true;
+    showMessage(message, "");
+
+    try {
+      const data = await api("/api/login", {
+        method: "POST",
+        body: {
+          email: document.getElementById("email").value,
+          password: document.getElementById("password").value,
+        },
+      });
+      token.set(data.access_token);
+      window.location.replace("index.html");
+    } catch (error) {
+      showMessage(message, error.message);
+      button.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

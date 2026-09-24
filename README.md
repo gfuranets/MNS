@@ -211,13 +211,12 @@ Full request/response shapes are at http://127.0.0.1:8000/docs.
 | POST | `/api/procedures/{id}/plans` | Info | "Set reminder": appointment time + which lines to remind about |
 | GET | `/api/prep-plans` | Home, Info | upcoming preparations |
 | PATCH / DELETE | `/api/prep-items/{id}`, `/api/prep-plans/{id}` | Info | tick a checklist line / remove a plan |
-| GET | `/api/reminders/pending` | pop-up | reminders waiting for Accept |
-| POST | `/api/notifications/{id}/accept`, `/accept-all` | pop-up, inbox | accept |
+| GET | `/api/reminders/pending` | Bell badge | reminders waiting for Accept |
+| POST | `/api/notifications/{id}/accept`, `/accept-all` | Home, inbox | accept |
 | GET | `/api/notifications` | Inbox | every in-app reminder |
 | POST | `/api/notifications/check` | Profile > Reminders | run the reminder check for yourself now |
 | GET / POST | `/api/notifications/recipients`, `/send` | Message all patients | SMS broadcast |
 
-The AI screen is interface only for now - there is no backend call yet.
 
 ### How the schedule is worked out
 

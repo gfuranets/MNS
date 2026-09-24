@@ -1,0 +1,2608 @@
+{
+ "/api/me": {
+  "id": 9,
+  "email": "user.demo@example.com",
+  "name": "User",
+  "surname": "Demo",
+  "birth_date": "1991-04-18",
+  "sex": "male",
+  "country": "Latvia",
+  "phone": "+37120000000",
+  "risk_factors": [
+   {
+    "code": "heart",
+    "scope": "family",
+    "note": null
+   }
+  ],
+  "language": "en",
+  "reminders_on": true,
+  "reminder_lead_days": 7,
+  "remind_push": true,
+  "remind_sms": false,
+  "remind_email": true,
+  "consent_at": "2026-09-23T14:37:17",
+  "profile_complete": true,
+  "created_at": "2026-09-23T14:37:12"
+ },
+ "/api/home": {
+  "name": "User",
+  "counts": {
+   "up_to_date": 4,
+   "due_soon": 1,
+   "overdue": 0
+  },
+  "popup": null,
+  "next_item": {
+   "kind": "guideline",
+   "id": 30,
+   "task_id": null,
+   "name": "Yearly check-up with your family doctor",
+   "category": "checkup",
+   "coverage": "state",
+   "status": "due_soon",
+   "due_on": "2026-10-06",
+   "days": 12,
+   "last_done": "2025-10-06",
+   "interval_months": 12
+  },
+  "coming_up": [
+   {
+    "kind": "guideline",
+    "id": 30,
+    "task_id": null,
+    "name": "Yearly check-up with your family doctor",
+    "category": "checkup",
+    "coverage": "state",
+    "status": "due_soon",
+    "due_on": "2026-10-06",
+    "days": 12,
+    "last_done": "2025-10-06",
+    "interval_months": 12
+   }
+  ],
+  "plans": [],
+  "pending_reminders": 0
+ },
+ "/api/checkups": [
+  {
+   "id": 13,
+   "name": "Tetanus & diphtheria booster",
+   "category": "vaccination",
+   "summary": "A free tetanus-diphtheria booster every 10 years for every adult, at your family doctor.",
+   "interval_months": 120,
+   "min_age": 18,
+   "max_age": null,
+   "sex": null,
+   "source_url": "https://www.spkc.gov.lv/lv/vakcinacija",
+   "applies": true
+  },
+  {
+   "id": 30,
+   "name": "Yearly check-up with your family doctor",
+   "category": "checkup",
+   "summary": "Free once a year for every adult who has not seen their family doctor about an illness that year.",
+   "interval_months": 12,
+   "min_age": 18,
+   "max_age": null,
+   "sex": null,
+   "source_url": "https://www.vmnvd.gov.lv/lv/jaunums/kadas-profilaktiskas-veselibas-parbaudes-pieaugusie-var-veikt-bez-maksas",
+   "applies": true
+  },
+  {
+   "id": 7,
+   "name": "Blood sugar test",
+   "category": "checkup",
+   "summary": "Free fasting glucose test at 40, then every 3 years from 45 to 72 - yearly if you are overweight and diabetes runs in your family.",
+   "interval_months": 36,
+   "min_age": 40,
+   "max_age": 72,
+   "sex": null,
+   "source_url": "https://www.vmnvd.gov.lv/lv/jaunums/kadas-profilaktiskas-veselibas-parbaudes-pieaugusie-var-veikt-bez-maksas",
+   "applies": false
+  },
+  {
+   "id": 3,
+   "name": "Bowel cancer screening",
+   "category": "screening",
+   "summary": "A free home stool test every 2 years for everyone aged 50-74. Ask your family doctor for the kit.",
+   "interval_months": 24,
+   "min_age": 50,
+   "max_age": 74,
+   "sex": null,
+   "source_url": "https://www.vmnvd.gov.lv/lv/veza-profilaktiskas-parbaudes",
+   "applies": false
+  },
+  {
+   "id": 1,
+   "name": "Cervical HPV test",
+   "category": "screening",
+   "summary": "Free every 5 years for women aged 30-70 - an HPV test since July 2025. The state sends an invitation letter.",
+   "interval_months": 60,
+   "min_age": 30,
+   "max_age": 70,
+   "sex": "female",
+   "source_url": "https://www.vmnvd.gov.lv/lv/jaunums/dzemdes-kakla-veza-skrinings-klust-efektivaks",
+   "applies": false
+  },
+  {
+   "id": 32,
+   "name": "Cervical smear (cytology)",
+   "category": "screening",
+   "summary": "Free every 3 years for women aged 25-29. The state sends an invitation letter.",
+   "interval_months": 36,
+   "min_age": 25,
+   "max_age": 29,
+   "sex": "female",
+   "source_url": "https://www.vmnvd.gov.lv/lv/dzemdes-kakla-un-krusu-profilaktiskas-parbaudes",
+   "applies": false
+  },
+  {
+   "id": 14,
+   "name": "Flu vaccine",
+   "category": "vaccination",
+   "summary": "A flu vaccine every autumn, paid by the state for people 65 and over and other risk groups.",
+   "interval_months": 12,
+   "min_age": 65,
+   "max_age": null,
+   "sex": null,
+   "source_url": "https://www.spkc.gov.lv/lv/valsts-apmaksata-vakcinacija-pret-sezonalo-gripu",
+   "applies": false
+  },
+  {
+   "id": 31,
+   "name": "Heart health assessment",
+   "category": "checkup",
+   "summary": "Free at ages 40, 45, 50, 55, 60 and 65 during the yearly family doctor visit: SCORE risk, lipid panel and ECG.",
+   "interval_months": 60,
+   "min_age": 40,
+   "max_age": 65,
+   "sex": null,
+   "source_url": "https://www.vmnvd.gov.lv/lv/jaunums/kadas-profilaktiskas-veselibas-parbaudes-pieaugusie-var-veikt-bez-maksas",
+   "applies": false
+  },
+  {
+   "id": 2,
+   "name": "Mammography",
+   "category": "screening",
+   "summary": "Free every 2 years for women aged 50-68. The state sends an invitation letter.",
+   "interval_months": 24,
+   "min_age": 50,
+   "max_age": 68,
+   "sex": "female",
+   "source_url": "https://www.vmnvd.gov.lv/lv/dzemdes-kakla-un-krusu-profilaktiskas-parbaudes",
+   "applies": false
+  },
+  {
+   "id": 4,
+   "name": "Prostate check (PSA)",
+   "category": "screening",
+   "summary": "A free PSA blood test every 2 years for men aged 50-75, from 45 if prostate cancer runs in the family.",
+   "interval_months": 24,
+   "min_age": 50,
+   "max_age": 75,
+   "sex": "male",
+   "source_url": "https://www.vmnvd.gov.lv/lv/prostatas-profilaktiska-parbaude",
+   "applies": false
+  }
+ ],
+ "/api/tasks": [
+  {
+   "id": 16,
+   "title": "Flu vaccine",
+   "category": "vaccination",
+   "description": "Seasonal flu shot at the family doctor.",
+   "doctor_name": null,
+   "doctor_specialty": null,
+   "repeat_every": 1,
+   "repeat_unit": "year",
+   "remind_every_minutes": null,
+   "created_at": "2026-09-24T13:35:10",
+   "events": [
+    {
+     "id": 31,
+     "due_on": "2026-11-16",
+     "status": "pending",
+     "done_on": null
+    }
+   ]
+  },
+  {
+   "id": 17,
+   "title": "Tick-borne encephalitis booster",
+   "category": "vaccination",
+   "description": "TBE booster before the tick season.",
+   "doctor_name": null,
+   "doctor_specialty": null,
+   "repeat_every": null,
+   "repeat_unit": null,
+   "remind_every_minutes": null,
+   "created_at": "2026-09-24T13:35:10",
+   "events": [
+    {
+     "id": 32,
+     "due_on": "2027-03-15",
+     "status": "pending",
+     "done_on": null
+    }
+   ]
+  },
+  {
+   "id": 18,
+   "title": "Dental check-up",
+   "category": "checkup",
+   "description": null,
+   "doctor_name": null,
+   "doctor_specialty": "Dentist",
+   "repeat_every": 1,
+   "repeat_unit": "year",
+   "remind_every_minutes": null,
+   "created_at": "2026-09-24T13:35:10",
+   "events": [
+    {
+     "id": 33,
+     "due_on": "2027-06-07",
+     "status": "pending",
+     "done_on": null
+    }
+   ]
+  }
+ ],
+ "/api/categories": [
+  "appointment",
+  "checkup",
+  "vaccination"
+ ],
+ "/api/log": [
+  {
+   "kind": "done",
+   "id": 21,
+   "title": "zxxx",
+   "category": "appointment",
+   "date": "2026-09-23",
+   "notes": null,
+   "attachment_name": null,
+   "checkup_type_id": null,
+   "task_id": null,
+   "lab_report_id": null
+  },
+  {
+   "kind": "done",
+   "id": 47,
+   "title": "Blood test",
+   "category": "checkup",
+   "date": "2026-09-15",
+   "notes": "[demo] Back on vitamin D since April; less fast food.",
+   "attachment_name": null,
+   "checkup_type_id": null,
+   "task_id": null,
+   "lab_report_id": 10
+  },
+  {
+   "kind": "done",
+   "id": 46,
+   "title": "Blood test",
+   "category": "checkup",
+   "date": "2026-03-16",
+   "notes": "[demo] Stopped the supplements in December. Full panel again, incl. metals.",
+   "attachment_name": null,
+   "checkup_type_id": null,
+   "task_id": null,
+   "lab_report_id": 9
+  },
+  {
+   "kind": "done",
+   "id": 42,
+   "title": "Yearly check-up with your family doctor",
+   "category": "checkup",
+   "date": "2025-10-06",
+   "notes": "[demo] Blood pressure 121/78. Discussed family history of heart disease.",
+   "attachment_name": null,
+   "checkup_type_id": 30,
+   "task_id": null,
+   "lab_report_id": null
+  },
+  {
+   "kind": "done",
+   "id": 45,
+   "title": "Blood test",
+   "category": "checkup",
+   "date": "2025-09-22",
+   "notes": "[demo] After a summer of vitamin D 2000 IU a day.",
+   "attachment_name": null,
+   "checkup_type_id": null,
+   "task_id": null,
+   "lab_report_id": 8
+  },
+  {
+   "kind": "done",
+   "id": 41,
+   "title": "Tetanus & diphtheria booster",
+   "category": "vaccination",
+   "date": "2025-06-18",
+   "notes": "[demo] Td booster before a summer job on a building site.",
+   "attachment_name": null,
+   "checkup_type_id": 13,
+   "task_id": null,
+   "lab_report_id": null
+  },
+  {
+   "kind": "done",
+   "id": 44,
+   "title": "Blood test",
+   "category": "checkup",
+   "date": "2025-03-10",
+   "notes": "[demo] End of winter, felt tired. Doctor suggested vitamin D and iron-rich food.",
+   "attachment_name": null,
+   "checkup_type_id": null,
+   "task_id": null,
+   "lab_report_id": 7
+  },
+  {
+   "kind": "done",
+   "id": 43,
+   "title": "Blood test",
+   "category": "checkup",
+   "date": "2024-10-14",
+   "notes": "[demo] First full panel - baseline.",
+   "attachment_name": null,
+   "checkup_type_id": null,
+   "task_id": null,
+   "lab_report_id": 6
+  },
+  {
+   "kind": "done",
+   "id": 40,
+   "title": "Yearly check-up with your family doctor",
+   "category": "checkup",
+   "date": "2024-10-14",
+   "notes": "[demo] Blood pressure 118/76, BMI 22.4. Referred for blood tests.",
+   "attachment_name": null,
+   "checkup_type_id": 30,
+   "task_id": null,
+   "lab_report_id": null
+  }
+ ],
+ "/api/labs": [
+  {
+   "code": "folate",
+   "name": "Folate (B9)",
+   "category": "vitamin",
+   "unit": "ng/mL",
+   "summary": "Needed to make new cells. Comes from leafy greens and legumes.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 7.9,
+     "comparator": null,
+     "ref_low": 3.9,
+     "ref_high": 20.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 7,
+     "taken_at": "2025-03-10T08:30:00",
+     "value": 6.8,
+     "comparator": null,
+     "ref_low": 3.9,
+     "ref_high": 20.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 8.4,
+     "comparator": null,
+     "ref_low": 3.9,
+     "ref_high": 20.0,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "vitamin_b12",
+   "name": "Vitamin B12",
+   "category": "vitamin",
+   "unit": "pg/mL",
+   "summary": "Needed for nerves and red blood cells. Low in vegans and in people with some stomach problems.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 412.0,
+     "comparator": null,
+     "ref_low": 200.0,
+     "ref_high": 900.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 7,
+     "taken_at": "2025-03-10T08:30:00",
+     "value": 388.0,
+     "comparator": null,
+     "ref_low": 200.0,
+     "ref_high": 900.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 455.0,
+     "comparator": null,
+     "ref_low": 200.0,
+     "ref_high": 900.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 471.0,
+     "comparator": null,
+     "ref_low": 200.0,
+     "ref_high": 900.0,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "vitamin_d",
+   "name": "Vitamin D (25-OH)",
+   "category": "vitamin",
+   "unit": "ng/mL",
+   "summary": "Low levels are very common in Latvia from October to April, when the sun is too low to make vitamin D in the skin.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 21.4,
+     "comparator": null,
+     "ref_low": 30.0,
+     "ref_high": 100.0,
+     "flag": "low"
+    },
+    {
+     "report_id": 7,
+     "taken_at": "2025-03-10T08:30:00",
+     "value": 17.8,
+     "comparator": null,
+     "ref_low": 30.0,
+     "ref_high": 100.0,
+     "flag": "low"
+    },
+    {
+     "report_id": 8,
+     "taken_at": "2025-09-22T08:05:00",
+     "value": 38.4,
+     "comparator": null,
+     "ref_low": 30.0,
+     "ref_high": 100.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 27.1,
+     "comparator": null,
+     "ref_low": 30.0,
+     "ref_high": 100.0,
+     "flag": "low"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 44.2,
+     "comparator": null,
+     "ref_low": 30.0,
+     "ref_high": 100.0,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "calcium",
+   "name": "Calcium (total)",
+   "category": "mineral",
+   "unit": "mmol/L",
+   "summary": "Kept in a narrow range by the body - an abnormal value usually points to a hormone or kidney problem, not diet.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 2.36,
+     "comparator": null,
+     "ref_low": 2.15,
+     "ref_high": 2.55,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 2.41,
+     "comparator": null,
+     "ref_low": 2.15,
+     "ref_high": 2.55,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 2.38,
+     "comparator": null,
+     "ref_low": 2.15,
+     "ref_high": 2.55,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "copper",
+   "name": "Copper",
+   "category": "mineral",
+   "unit": "µmol/L",
+   "summary": "A trace metal needed for iron use and nerves.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 15.2,
+     "comparator": null,
+     "ref_low": 11.0,
+     "ref_high": 22.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 16.0,
+     "comparator": null,
+     "ref_low": 11.0,
+     "ref_high": 22.0,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "ferritin",
+   "name": "Ferritin",
+   "category": "mineral",
+   "unit": "µg/L",
+   "summary": "The body's iron store. Low ferritin is the earliest sign of iron deficiency.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 38.0,
+     "comparator": null,
+     "ref_low": 30.0,
+     "ref_high": 400.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 7,
+     "taken_at": "2025-03-10T08:30:00",
+     "value": 24.0,
+     "comparator": null,
+     "ref_low": 30.0,
+     "ref_high": 400.0,
+     "flag": "low"
+    },
+    {
+     "report_id": 8,
+     "taken_at": "2025-09-22T08:05:00",
+     "value": 41.0,
+     "comparator": null,
+     "ref_low": 30.0,
+     "ref_high": 400.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 57.0,
+     "comparator": null,
+     "ref_low": 30.0,
+     "ref_high": 400.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 64.0,
+     "comparator": null,
+     "ref_low": 30.0,
+     "ref_high": 400.0,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "iron",
+   "name": "Iron (serum)",
+   "category": "mineral",
+   "unit": "µmol/L",
+   "summary": "Iron in the blood right now - changes during the day, so read it together with ferritin.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 16.8,
+     "comparator": null,
+     "ref_low": 12.5,
+     "ref_high": 32.2,
+     "flag": "normal"
+    },
+    {
+     "report_id": 7,
+     "taken_at": "2025-03-10T08:30:00",
+     "value": 11.2,
+     "comparator": null,
+     "ref_low": 12.5,
+     "ref_high": 32.2,
+     "flag": "low"
+    },
+    {
+     "report_id": 8,
+     "taken_at": "2025-09-22T08:05:00",
+     "value": 18.9,
+     "comparator": null,
+     "ref_low": 12.5,
+     "ref_high": 32.2,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 19.6,
+     "comparator": null,
+     "ref_low": 12.5,
+     "ref_high": 32.2,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 21.3,
+     "comparator": null,
+     "ref_low": 12.5,
+     "ref_high": 32.2,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "magnesium",
+   "name": "Magnesium",
+   "category": "mineral",
+   "unit": "mmol/L",
+   "summary": "Needed for muscles and nerves. Cramps and twitching can be a sign of a low level.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 0.81,
+     "comparator": null,
+     "ref_low": 0.66,
+     "ref_high": 1.07,
+     "flag": "normal"
+    },
+    {
+     "report_id": 7,
+     "taken_at": "2025-03-10T08:30:00",
+     "value": 0.72,
+     "comparator": null,
+     "ref_low": 0.66,
+     "ref_high": 1.07,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 0.84,
+     "comparator": null,
+     "ref_low": 0.66,
+     "ref_high": 1.07,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 0.86,
+     "comparator": null,
+     "ref_low": 0.66,
+     "ref_high": 1.07,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "zinc",
+   "name": "Zinc",
+   "category": "mineral",
+   "unit": "µmol/L",
+   "summary": "Needed for immunity and wound healing.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 13.1,
+     "comparator": null,
+     "ref_low": 11.0,
+     "ref_high": 18.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 8,
+     "taken_at": "2025-09-22T08:05:00",
+     "value": 12.4,
+     "comparator": null,
+     "ref_low": 11.0,
+     "ref_high": 18.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 14.0,
+     "comparator": null,
+     "ref_low": 11.0,
+     "ref_high": 18.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 13.6,
+     "comparator": null,
+     "ref_low": 11.0,
+     "ref_high": 18.0,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "lead",
+   "name": "Lead (blood)",
+   "category": "heavy_metal",
+   "unit": "µg/L",
+   "summary": "A toxic metal with no safe level. Sources: old paint, some hobbies (shooting, soldering), contaminated water.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 18.0,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 50.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 22.0,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 50.0,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "mercury",
+   "name": "Mercury (blood)",
+   "category": "heavy_metal",
+   "unit": "µg/L",
+   "summary": "Mostly from large predatory fish (tuna, swordfish). Rises with how much of them you eat.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 1.0,
+     "comparator": "<",
+     "ref_low": null,
+     "ref_high": 10.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 3.1,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 10.0,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "hemoglobin",
+   "name": "Haemoglobin",
+   "category": "blood_count",
+   "unit": "g/L",
+   "summary": "Carries oxygen in red blood cells. Low means anaemia.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 148.0,
+     "comparator": null,
+     "ref_low": 130.0,
+     "ref_high": 170.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 7,
+     "taken_at": "2025-03-10T08:30:00",
+     "value": 139.0,
+     "comparator": null,
+     "ref_low": 130.0,
+     "ref_high": 170.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 8,
+     "taken_at": "2025-09-22T08:05:00",
+     "value": 151.0,
+     "comparator": null,
+     "ref_low": 130.0,
+     "ref_high": 170.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 153.0,
+     "comparator": null,
+     "ref_low": 130.0,
+     "ref_high": 170.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 155.0,
+     "comparator": null,
+     "ref_low": 130.0,
+     "ref_high": 170.0,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "wbc",
+   "name": "White blood cells",
+   "category": "blood_count",
+   "unit": "10^9/L",
+   "summary": "Infection-fighting cells. High during an infection, low with some medicines and illnesses.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 6.4,
+     "comparator": null,
+     "ref_low": 4.0,
+     "ref_high": 10.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 7,
+     "taken_at": "2025-03-10T08:30:00",
+     "value": 8.9,
+     "comparator": null,
+     "ref_low": 4.0,
+     "ref_high": 10.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 8,
+     "taken_at": "2025-09-22T08:05:00",
+     "value": 5.8,
+     "comparator": null,
+     "ref_low": 4.0,
+     "ref_high": 10.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 6.1,
+     "comparator": null,
+     "ref_low": 4.0,
+     "ref_high": 10.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 5.9,
+     "comparator": null,
+     "ref_low": 4.0,
+     "ref_high": 10.0,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "glucose",
+   "name": "Glucose (fasting)",
+   "category": "metabolic",
+   "unit": "mmol/L",
+   "summary": "Blood sugar after 8 hours without food. 5.6-6.9 is prediabetes, 7.0 and above suggests diabetes.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 4.9,
+     "comparator": null,
+     "ref_low": 3.9,
+     "ref_high": 5.6,
+     "flag": "normal"
+    },
+    {
+     "report_id": 8,
+     "taken_at": "2025-09-22T08:05:00",
+     "value": 5.1,
+     "comparator": null,
+     "ref_low": 3.9,
+     "ref_high": 5.6,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 5.3,
+     "comparator": null,
+     "ref_low": 3.9,
+     "ref_high": 5.6,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 5.0,
+     "comparator": null,
+     "ref_low": 3.9,
+     "ref_high": 5.6,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "hdl",
+   "name": "HDL cholesterol",
+   "category": "lipid",
+   "unit": "mmol/L",
+   "summary": "The \"good\" cholesterol that carries fat away from arteries. Higher is better.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 1.32,
+     "comparator": null,
+     "ref_low": 1.0,
+     "ref_high": null,
+     "flag": "normal"
+    },
+    {
+     "report_id": 8,
+     "taken_at": "2025-09-22T08:05:00",
+     "value": 1.28,
+     "comparator": null,
+     "ref_low": 1.0,
+     "ref_high": null,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 1.21,
+     "comparator": null,
+     "ref_low": 1.0,
+     "ref_high": null,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 1.3,
+     "comparator": null,
+     "ref_low": 1.0,
+     "ref_high": null,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "ldl",
+   "name": "LDL cholesterol",
+   "category": "lipid",
+   "unit": "mmol/L",
+   "summary": "The \"bad\" cholesterol that builds up in artery walls.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 2.7,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 3.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 8,
+     "taken_at": "2025-09-22T08:05:00",
+     "value": 2.9,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 3.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 3.4,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 3.0,
+     "flag": "high"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 3.1,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 3.0,
+     "flag": "high"
+    }
+   ]
+  },
+  {
+   "code": "cholesterol_total",
+   "name": "Total cholesterol",
+   "category": "lipid",
+   "unit": "mmol/L",
+   "summary": "All cholesterol in the blood. Read it together with LDL and HDL.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 4.6,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 5.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 8,
+     "taken_at": "2025-09-22T08:05:00",
+     "value": 4.9,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 5.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 5.4,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 5.0,
+     "flag": "high"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 5.1,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 5.0,
+     "flag": "high"
+    }
+   ]
+  },
+  {
+   "code": "triglycerides",
+   "name": "Triglycerides",
+   "category": "lipid",
+   "unit": "mmol/L",
+   "summary": "Blood fats that rise after sugary food and alcohol.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 1.05,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 1.7,
+     "flag": "normal"
+    },
+    {
+     "report_id": 8,
+     "taken_at": "2025-09-22T08:05:00",
+     "value": 1.22,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 1.7,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 1.58,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 1.7,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 1.31,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 1.7,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "tsh",
+   "name": "TSH (thyroid)",
+   "category": "hormone",
+   "unit": "mIU/L",
+   "summary": "Controls the thyroid. High TSH means an underactive thyroid, low means overactive.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 1.92,
+     "comparator": null,
+     "ref_low": 0.4,
+     "ref_high": 4.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 7,
+     "taken_at": "2025-03-10T08:30:00",
+     "value": 2.34,
+     "comparator": null,
+     "ref_low": 0.4,
+     "ref_high": 4.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 2.08,
+     "comparator": null,
+     "ref_low": 0.4,
+     "ref_high": 4.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 1.87,
+     "comparator": null,
+     "ref_low": 0.4,
+     "ref_high": 4.0,
+     "flag": "normal"
+    }
+   ]
+  },
+  {
+   "code": "crp",
+   "name": "C-reactive protein",
+   "category": "inflammation",
+   "unit": "mg/L",
+   "summary": "Rises within hours of an infection or inflammation anywhere in the body.",
+   "points": [
+    {
+     "report_id": 6,
+     "taken_at": "2024-10-14T08:10:00",
+     "value": 1.1,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 5.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 7,
+     "taken_at": "2025-03-10T08:30:00",
+     "value": 3.6,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 5.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 8,
+     "taken_at": "2025-09-22T08:05:00",
+     "value": 0.7,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 5.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 9,
+     "taken_at": "2026-03-16T08:20:00",
+     "value": 1.4,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 5.0,
+     "flag": "normal"
+    },
+    {
+     "report_id": 10,
+     "taken_at": "2026-09-15T08:15:00",
+     "value": 0.8,
+     "comparator": null,
+     "ref_low": null,
+     "ref_high": 5.0,
+     "flag": "normal"
+    }
+   ]
+  }
+ ],
+ "/api/vaccinations": [
+  {
+   "name": "Tetanus & diphtheria booster",
+   "doses": [
+    "2025-06-18"
+   ],
+   "last_done": "2025-06-18",
+   "renew_on": "2035-06-18",
+   "status": "up_to_date",
+   "checkup_type_id": 13
+  }
+ ],
+ "/api/procedures": [
+  {
+   "id": 8,
+   "code": "abdominal_ultrasound",
+   "name": "Abdominal ultrasound",
+   "summary": "Sound waves make pictures of your liver, gallbladder, kidneys and other organs. Painless, about 20 minutes, with cold gel on your belly."
+  },
+  {
+   "id": 7,
+   "code": "cervical_smear",
+   "name": "Cervical smear",
+   "summary": "A nurse or gynaecologist takes a small sample of cells from the cervix with a soft brush. It takes a few minutes."
+  },
+  {
+   "id": 2,
+   "code": "colonoscopy",
+   "name": "Colonoscopy",
+   "summary": "A camera looks at the inside of your large bowel. It can find and remove polyps before they turn into cancer. The bowel must be completely empty, so preparation starts days before."
+  },
+  {
+   "id": 5,
+   "code": "ct_contrast",
+   "name": "CT scan with contrast",
+   "summary": "A CT scan is a fast X-ray scan. Contrast dye is injected into a vein to make blood vessels and organs show up more clearly. It can make you feel warm for a moment."
+  },
+  {
+   "id": 12,
+   "code": "eye_dilation",
+   "name": "Eye exam with dilating drops",
+   "summary": "Drops widen your pupils so the doctor can see the back of your eye. Your sight will be blurry and light-sensitive for 4-6 hours."
+  },
+  {
+   "id": 3,
+   "code": "blood_test_fasting",
+   "name": "Fasting blood test",
+   "summary": "Some blood tests - glucose, cholesterol and lipids - need an empty stomach to give an accurate result. The draw itself takes a few minutes."
+  },
+  {
+   "id": 1,
+   "code": "gastroscopy",
+   "name": "Gastroscopy",
+   "summary": "A thin, flexible camera is passed through your mouth to look at your oesophagus, stomach and the start of your small intestine. It takes 5-15 minutes. You can ask for a throat spray or light sedation."
+  },
+  {
+   "id": 6,
+   "code": "mammography",
+   "name": "Mammography",
+   "summary": "A low-dose X-ray of the breasts. Each breast is pressed flat for a few seconds, which can be uncomfortable but is quick."
+  },
+  {
+   "id": 4,
+   "code": "mri",
+   "name": "MRI scan",
+   "summary": "An MRI uses a strong magnet to make detailed pictures of the body. It is painless but loud, and you lie still in a narrow tunnel for 15-60 minutes. Metal is not allowed in the room."
+  },
+  {
+   "id": 10,
+   "code": "surgery_anaesthesia",
+   "name": "Surgery under general anaesthesia",
+   "summary": "You will be fully asleep during the operation. Most rules exist to keep your stomach empty and to get you home safely afterwards."
+  },
+  {
+   "id": 11,
+   "code": "tooth_extraction",
+   "name": "Tooth extraction",
+   "summary": "The dentist numbs the area and removes the tooth. Expect some swelling and soreness for a few days."
+  },
+  {
+   "id": 9,
+   "code": "vaccination",
+   "name": "Vaccination",
+   "summary": "A quick injection, usually in the upper arm. You wait about 15 minutes afterwards in case of a reaction."
+  }
+ ],
+ "/api/prep-plans": [],
+ "/api/notifications": {
+  "waiting": 0,
+  "items": [
+   {
+    "id": 48,
+    "kind": "due_soon",
+    "message": "No record of your tetanus & diphtheria booster yet. Book it, or log it if you've had one.",
+    "checkup_type_id": 13,
+    "task_event_id": null,
+    "prep_item_id": null,
+    "accepted_at": "2026-09-24T13:35:11",
+    "created_at": "2026-09-23T14:40:41"
+   },
+   {
+    "id": 47,
+    "kind": "due_soon",
+    "message": "No record of your flu vaccine yet. Book it, or log it if you've had one.",
+    "checkup_type_id": 14,
+    "task_event_id": null,
+    "prep_item_id": null,
+    "accepted_at": "2026-09-24T13:35:11",
+    "created_at": "2026-09-23T14:40:41"
+   },
+   {
+    "id": 46,
+    "kind": "due_soon",
+    "message": "No record of your encephalitis booster yet. Book it, or log it if you've had one.",
+    "checkup_type_id": null,
+    "task_event_id": null,
+    "prep_item_id": null,
+    "accepted_at": "2026-09-24T13:35:11",
+    "created_at": "2026-09-23T14:40:41"
+   },
+   {
+    "id": 45,
+    "kind": "due_soon",
+    "message": "No record of your dental check-up yet. Book it, or log it if you've had one.",
+    "checkup_type_id": null,
+    "task_event_id": null,
+    "prep_item_id": null,
+    "accepted_at": "2026-09-24T13:35:11",
+    "created_at": "2026-09-23T14:40:41"
+   },
+   {
+    "id": 44,
+    "kind": "due_soon",
+    "message": "No record of your blood test yet. Book it, or log it if you've had one.",
+    "checkup_type_id": null,
+    "task_event_id": null,
+    "prep_item_id": null,
+    "accepted_at": "2026-09-24T13:35:11",
+    "created_at": "2026-09-23T14:40:41"
+   },
+   {
+    "id": 43,
+    "kind": "due_soon",
+    "message": "No record of your blood pressure check yet. Book it, or log it if you've had one.",
+    "checkup_type_id": null,
+    "task_event_id": null,
+    "prep_item_id": null,
+    "accepted_at": "2026-09-24T13:35:11",
+    "created_at": "2026-09-23T14:40:41"
+   }
+  ]
+ },
+ "/api/reminders/pending": [],
+ "/api/notifications/recipients": {
+  "recipients": 1
+ },
+ "/api/me/export": {
+  "profile": {
+   "id": 9,
+   "email": "user.demo@example.com",
+   "name": "User",
+   "surname": "Demo",
+   "birth_date": "1991-04-18",
+   "sex": "male",
+   "country": "Latvia",
+   "phone": "+37120000000",
+   "risk_factors": [
+    {
+     "code": "heart",
+     "scope": "family",
+     "note": null
+    }
+   ],
+   "language": "en",
+   "reminders_on": true,
+   "reminder_lead_days": 7,
+   "remind_push": true,
+   "remind_sms": false,
+   "remind_email": true,
+   "consent_at": "2026-09-23T14:37:17",
+   "profile_complete": true,
+   "created_at": "2026-09-23T14:37:12"
+  },
+  "log": [
+   {
+    "id": 21,
+    "title": "zxxx",
+    "category": "appointment",
+    "done_on": "2026-09-23",
+    "renew_on": null,
+    "checkup_type_id": null,
+    "task_id": null,
+    "notes": null,
+    "attachment_name": null,
+    "created_at": "2026-09-23T14:39:27"
+   },
+   {
+    "id": 47,
+    "title": "Blood test",
+    "category": "checkup",
+    "done_on": "2026-09-15",
+    "renew_on": null,
+    "checkup_type_id": null,
+    "task_id": null,
+    "notes": "[demo] Back on vitamin D since April; less fast food.",
+    "attachment_name": null,
+    "created_at": "2026-09-24T01:14:11"
+   },
+   {
+    "id": 46,
+    "title": "Blood test",
+    "category": "checkup",
+    "done_on": "2026-03-16",
+    "renew_on": null,
+    "checkup_type_id": null,
+    "task_id": null,
+    "notes": "[demo] Stopped the supplements in December. Full panel again, incl. metals.",
+    "attachment_name": null,
+    "created_at": "2026-09-24T01:14:11"
+   },
+   {
+    "id": 42,
+    "title": "Yearly check-up with your family doctor",
+    "category": "checkup",
+    "done_on": "2025-10-06",
+    "renew_on": null,
+    "checkup_type_id": 30,
+    "task_id": null,
+    "notes": "[demo] Blood pressure 121/78. Discussed family history of heart disease.",
+    "attachment_name": null,
+    "created_at": "2026-09-24T01:14:11"
+   },
+   {
+    "id": 45,
+    "title": "Blood test",
+    "category": "checkup",
+    "done_on": "2025-09-22",
+    "renew_on": null,
+    "checkup_type_id": null,
+    "task_id": null,
+    "notes": "[demo] After a summer of vitamin D 2000 IU a day.",
+    "attachment_name": null,
+    "created_at": "2026-09-24T01:14:11"
+   },
+   {
+    "id": 41,
+    "title": "Tetanus & diphtheria booster",
+    "category": "vaccination",
+    "done_on": "2025-06-18",
+    "renew_on": "2035-06-18",
+    "checkup_type_id": 13,
+    "task_id": null,
+    "notes": "[demo] Td booster before a summer job on a building site.",
+    "attachment_name": null,
+    "created_at": "2026-09-24T01:14:11"
+   },
+   {
+    "id": 44,
+    "title": "Blood test",
+    "category": "checkup",
+    "done_on": "2025-03-10",
+    "renew_on": null,
+    "checkup_type_id": null,
+    "task_id": null,
+    "notes": "[demo] End of winter, felt tired. Doctor suggested vitamin D and iron-rich food.",
+    "attachment_name": null,
+    "created_at": "2026-09-24T01:14:11"
+   },
+   {
+    "id": 43,
+    "title": "Blood test",
+    "category": "checkup",
+    "done_on": "2024-10-14",
+    "renew_on": null,
+    "checkup_type_id": null,
+    "task_id": null,
+    "notes": "[demo] First full panel - baseline.",
+    "attachment_name": null,
+    "created_at": "2026-09-24T01:14:11"
+   },
+   {
+    "id": 40,
+    "title": "Yearly check-up with your family doctor",
+    "category": "checkup",
+    "done_on": "2024-10-14",
+    "renew_on": null,
+    "checkup_type_id": 30,
+    "task_id": null,
+    "notes": "[demo] Blood pressure 118/76, BMI 22.4. Referred for blood tests.",
+    "attachment_name": null,
+    "created_at": "2026-09-24T01:14:11"
+   }
+  ],
+  "tasks": [
+   {
+    "id": 16,
+    "title": "Flu vaccine",
+    "category": "vaccination",
+    "description": "Seasonal flu shot at the family doctor.",
+    "doctor_name": null,
+    "doctor_specialty": null,
+    "repeat_every": 1,
+    "repeat_unit": "year",
+    "remind_every_minutes": null,
+    "created_at": "2026-09-24T13:35:10",
+    "events": [
+     {
+      "id": 31,
+      "due_on": "2026-11-16",
+      "status": "pending",
+      "done_on": null
+     }
+    ]
+   },
+   {
+    "id": 17,
+    "title": "Tick-borne encephalitis booster",
+    "category": "vaccination",
+    "description": "TBE booster before the tick season.",
+    "doctor_name": null,
+    "doctor_specialty": null,
+    "repeat_every": null,
+    "repeat_unit": null,
+    "remind_every_minutes": null,
+    "created_at": "2026-09-24T13:35:10",
+    "events": [
+     {
+      "id": 32,
+      "due_on": "2027-03-15",
+      "status": "pending",
+      "done_on": null
+     }
+    ]
+   },
+   {
+    "id": 18,
+    "title": "Dental check-up",
+    "category": "checkup",
+    "description": null,
+    "doctor_name": null,
+    "doctor_specialty": "Dentist",
+    "repeat_every": 1,
+    "repeat_unit": "year",
+    "remind_every_minutes": null,
+    "created_at": "2026-09-24T13:35:10",
+    "events": [
+     {
+      "id": 33,
+      "due_on": "2027-06-07",
+      "status": "pending",
+      "done_on": null
+     }
+    ]
+   }
+  ],
+  "preparation_plans": [],
+  "notifications": [
+   {
+    "channel": "push",
+    "kind": "due_soon",
+    "message": "No record of your tetanus & diphtheria booster yet. Book it, or log it if you've had one.",
+    "status": "delivered",
+    "created_at": "2026-09-23T14:40:41"
+   },
+   {
+    "channel": "push",
+    "kind": "due_soon",
+    "message": "No record of your flu vaccine yet. Book it, or log it if you've had one.",
+    "status": "delivered",
+    "created_at": "2026-09-23T14:40:41"
+   },
+   {
+    "channel": "push",
+    "kind": "due_soon",
+    "message": "No record of your encephalitis booster yet. Book it, or log it if you've had one.",
+    "status": "delivered",
+    "created_at": "2026-09-23T14:40:41"
+   },
+   {
+    "channel": "push",
+    "kind": "due_soon",
+    "message": "No record of your dental check-up yet. Book it, or log it if you've had one.",
+    "status": "delivered",
+    "created_at": "2026-09-23T14:40:41"
+   },
+   {
+    "channel": "push",
+    "kind": "due_soon",
+    "message": "No record of your blood test yet. Book it, or log it if you've had one.",
+    "status": "delivered",
+    "created_at": "2026-09-23T14:40:41"
+   },
+   {
+    "channel": "push",
+    "kind": "due_soon",
+    "message": "No record of your blood pressure check yet. Book it, or log it if you've had one.",
+    "status": "delivered",
+    "created_at": "2026-09-23T14:40:41"
+   }
+  ]
+ },
+ "/api/schedule?source=all": [
+  {
+   "kind": "guideline",
+   "id": 30,
+   "task_id": null,
+   "name": "Yearly check-up with your family doctor",
+   "category": "checkup",
+   "coverage": "state",
+   "status": "due_soon",
+   "due_on": "2026-10-06",
+   "days": 12,
+   "last_done": "2025-10-06",
+   "interval_months": 12
+  },
+  {
+   "kind": "task",
+   "id": 31,
+   "task_id": 16,
+   "name": "Flu vaccine",
+   "category": "vaccination",
+   "coverage": null,
+   "status": "up_to_date",
+   "due_on": "2026-11-16",
+   "days": 53,
+   "last_done": null,
+   "interval_months": null
+  },
+  {
+   "kind": "task",
+   "id": 32,
+   "task_id": 17,
+   "name": "Tick-borne encephalitis booster",
+   "category": "vaccination",
+   "coverage": null,
+   "status": "up_to_date",
+   "due_on": "2027-03-15",
+   "days": 172,
+   "last_done": null,
+   "interval_months": null
+  },
+  {
+   "kind": "task",
+   "id": 33,
+   "task_id": 18,
+   "name": "Dental check-up",
+   "category": "checkup",
+   "coverage": null,
+   "status": "up_to_date",
+   "due_on": "2027-06-07",
+   "days": 256,
+   "last_done": null,
+   "interval_months": null
+  },
+  {
+   "kind": "guideline",
+   "id": 13,
+   "task_id": null,
+   "name": "Tetanus & diphtheria booster",
+   "category": "vaccination",
+   "coverage": "state",
+   "status": "up_to_date",
+   "due_on": "2035-06-18",
+   "days": 3189,
+   "last_done": "2025-06-18",
+   "interval_months": 120
+  }
+ ],
+ "/api/schedule?source=recommended": [
+  {
+   "kind": "guideline",
+   "id": 30,
+   "task_id": null,
+   "name": "Yearly check-up with your family doctor",
+   "category": "checkup",
+   "coverage": "state",
+   "status": "due_soon",
+   "due_on": "2026-10-06",
+   "days": 12,
+   "last_done": "2025-10-06",
+   "interval_months": 12
+  },
+  {
+   "kind": "guideline",
+   "id": 13,
+   "task_id": null,
+   "name": "Tetanus & diphtheria booster",
+   "category": "vaccination",
+   "coverage": "state",
+   "status": "up_to_date",
+   "due_on": "2035-06-18",
+   "days": 3189,
+   "last_done": "2025-06-18",
+   "interval_months": 120
+  }
+ ],
+ "/api/schedule?source=mine": [
+  {
+   "kind": "task",
+   "id": 31,
+   "task_id": 16,
+   "name": "Flu vaccine",
+   "category": "vaccination",
+   "coverage": null,
+   "status": "up_to_date",
+   "due_on": "2026-11-16",
+   "days": 53,
+   "last_done": null,
+   "interval_months": null
+  },
+  {
+   "kind": "task",
+   "id": 32,
+   "task_id": 17,
+   "name": "Tick-borne encephalitis booster",
+   "category": "vaccination",
+   "coverage": null,
+   "status": "up_to_date",
+   "due_on": "2027-03-15",
+   "days": 172,
+   "last_done": null,
+   "interval_months": null
+  },
+  {
+   "kind": "task",
+   "id": 33,
+   "task_id": 18,
+   "name": "Dental check-up",
+   "category": "checkup",
+   "coverage": null,
+   "status": "up_to_date",
+   "due_on": "2027-06-07",
+   "days": 256,
+   "last_done": null,
+   "interval_months": null
+  }
+ ],
+ "/api/schedule": [
+  {
+   "kind": "guideline",
+   "id": 30,
+   "task_id": null,
+   "name": "Yearly check-up with your family doctor",
+   "category": "checkup",
+   "coverage": "state",
+   "status": "due_soon",
+   "due_on": "2026-10-06",
+   "days": 12,
+   "last_done": "2025-10-06",
+   "interval_months": 12
+  },
+  {
+   "kind": "task",
+   "id": 31,
+   "task_id": 16,
+   "name": "Flu vaccine",
+   "category": "vaccination",
+   "coverage": null,
+   "status": "up_to_date",
+   "due_on": "2026-11-16",
+   "days": 53,
+   "last_done": null,
+   "interval_months": null
+  },
+  {
+   "kind": "task",
+   "id": 32,
+   "task_id": 17,
+   "name": "Tick-borne encephalitis booster",
+   "category": "vaccination",
+   "coverage": null,
+   "status": "up_to_date",
+   "due_on": "2027-03-15",
+   "days": 172,
+   "last_done": null,
+   "interval_months": null
+  },
+  {
+   "kind": "task",
+   "id": 33,
+   "task_id": 18,
+   "name": "Dental check-up",
+   "category": "checkup",
+   "coverage": null,
+   "status": "up_to_date",
+   "due_on": "2027-06-07",
+   "days": 256,
+   "last_done": null,
+   "interval_months": null
+  },
+  {
+   "kind": "guideline",
+   "id": 13,
+   "task_id": null,
+   "name": "Tetanus & diphtheria booster",
+   "category": "vaccination",
+   "coverage": "state",
+   "status": "up_to_date",
+   "due_on": "2035-06-18",
+   "days": 3189,
+   "last_done": "2025-06-18",
+   "interval_months": 120
+  }
+ ],
+ "/api/log?category=appointment": [
+  {
+   "kind": "done",
+   "id": 21,
+   "title": "zxxx",
+   "category": "appointment",
+   "date": "2026-09-23",
+   "notes": null,
+   "attachment_name": null,
+   "checkup_type_id": null,
+   "task_id": null,
+   "lab_report_id": null
+  }
+ ],
+ "/api/log?category=checkup": [
+  {
+   "kind": "done",
+   "id": 47,
+   "title": "Blood test",
+   "category": "checkup",
+   "date": "2026-09-15",
+   "notes": "[demo] Back on vitamin D since April; less fast food.",
+   "attachment_name": null,
+   "checkup_type_id": null,
+   "task_id": null,
+   "lab_report_id": 10
+  },
+  {
+   "kind": "done",
+   "id": 46,
+   "title": "Blood test",
+   "category": "checkup",
+   "date": "2026-03-16",
+   "notes": "[demo] Stopped the supplements in December. Full panel again, incl. metals.",
+   "attachment_name": null,
+   "checkup_type_id": null,
+   "task_id": null,
+   "lab_report_id": 9
+  },
+  {
+   "kind": "done",
+   "id": 42,
+   "title": "Yearly check-up with your family doctor",
+   "category": "checkup",
+   "date": "2025-10-06",
+   "notes": "[demo] Blood pressure 121/78. Discussed family history of heart disease.",
+   "attachment_name": null,
+   "checkup_type_id": 30,
+   "task_id": null,
+   "lab_report_id": null
+  },
+  {
+   "kind": "done",
+   "id": 45,
+   "title": "Blood test",
+   "category": "checkup",
+   "date": "2025-09-22",
+   "notes": "[demo] After a summer of vitamin D 2000 IU a day.",
+   "attachment_name": null,
+   "checkup_type_id": null,
+   "task_id": null,
+   "lab_report_id": 8
+  },
+  {
+   "kind": "done",
+   "id": 44,
+   "title": "Blood test",
+   "category": "checkup",
+   "date": "2025-03-10",
+   "notes": "[demo] End of winter, felt tired. Doctor suggested vitamin D and iron-rich food.",
+   "attachment_name": null,
+   "checkup_type_id": null,
+   "task_id": null,
+   "lab_report_id": 7
+  },
+  {
+   "kind": "done",
+   "id": 43,
+   "title": "Blood test",
+   "category": "checkup",
+   "date": "2024-10-14",
+   "notes": "[demo] First full panel - baseline.",
+   "attachment_name": null,
+   "checkup_type_id": null,
+   "task_id": null,
+   "lab_report_id": 6
+  },
+  {
+   "kind": "done",
+   "id": 40,
+   "title": "Yearly check-up with your family doctor",
+   "category": "checkup",
+   "date": "2024-10-14",
+   "notes": "[demo] Blood pressure 118/76, BMI 22.4. Referred for blood tests.",
+   "attachment_name": null,
+   "checkup_type_id": 30,
+   "task_id": null,
+   "lab_report_id": null
+  }
+ ],
+ "/api/log?category=vaccination": [
+  {
+   "kind": "done",
+   "id": 41,
+   "title": "Tetanus & diphtheria booster",
+   "category": "vaccination",
+   "date": "2025-06-18",
+   "notes": "[demo] Td booster before a summer job on a building site.",
+   "attachment_name": null,
+   "checkup_type_id": 13,
+   "task_id": null,
+   "lab_report_id": null
+  }
+ ],
+ "/api/calendar?month=2026-01": [],
+ "/api/calendar?month=2026-02": [],
+ "/api/calendar?month=2026-03": [
+  {
+   "date": "2026-03-16",
+   "kind": "log",
+   "id": 46,
+   "title": "Blood test",
+   "category": "checkup",
+   "status": "done"
+  }
+ ],
+ "/api/calendar?month=2026-04": [],
+ "/api/calendar?month=2026-05": [],
+ "/api/calendar?month=2026-06": [],
+ "/api/calendar?month=2026-07": [],
+ "/api/calendar?month=2026-08": [],
+ "/api/calendar?month=2026-09": [
+  {
+   "date": "2026-09-15",
+   "kind": "log",
+   "id": 47,
+   "title": "Blood test",
+   "category": "checkup",
+   "status": "done"
+  },
+  {
+   "date": "2026-09-23",
+   "kind": "log",
+   "id": 21,
+   "title": "zxxx",
+   "category": "appointment",
+   "status": "done"
+  }
+ ],
+ "/api/calendar?month=2026-10": [
+  {
+   "date": "2026-10-06",
+   "kind": "guideline",
+   "id": 30,
+   "title": "Yearly check-up with your family doctor",
+   "category": "checkup",
+   "status": "due_soon"
+  }
+ ],
+ "/api/calendar?month=2026-11": [
+  {
+   "date": "2026-11-16",
+   "kind": "task",
+   "id": 16,
+   "title": "Flu vaccine",
+   "category": "vaccination",
+   "status": "up_to_date"
+  }
+ ],
+ "/api/calendar?month=2026-12": [],
+ "/api/calendar?month=2027-01": [],
+ "/api/calendar?month=2027-02": [],
+ "/api/calendar?month=2027-03": [
+  {
+   "date": "2027-03-15",
+   "kind": "task",
+   "id": 17,
+   "title": "Tick-borne encephalitis booster",
+   "category": "vaccination",
+   "status": "up_to_date"
+  }
+ ],
+ "/api/calendar?month=2027-04": [],
+ "/api/calendar?month=2027-05": [],
+ "/api/calendar?month=2027-06": [
+  {
+   "date": "2027-06-07",
+   "kind": "task",
+   "id": 18,
+   "title": "Dental check-up",
+   "category": "checkup",
+   "status": "up_to_date"
+  }
+ ],
+ "/api/calendar?month=2027-07": [],
+ "/api/calendar?month=2027-08": [],
+ "/api/calendar?month=2027-09": [],
+ "/api/calendar?month=2027-10": [],
+ "/api/calendar?month=2027-11": [],
+ "/api/calendar?month=2027-12": [],
+ "/api/checkups/13": {
+  "item": {
+   "kind": "guideline",
+   "id": 13,
+   "task_id": null,
+   "name": "Tetanus & diphtheria booster",
+   "category": "vaccination",
+   "coverage": "state",
+   "status": "up_to_date",
+   "due_on": "2035-06-18",
+   "days": 3189,
+   "last_done": "2025-06-18",
+   "interval_months": 120
+  },
+  "summary": "A free tetanus-diphtheria booster every 10 years for every adult, at your family doctor.",
+  "more_info": "Tetanus enters through wounds and diphtheria spreads between people; both can be fatal. Protection fades, so adults need a booster every 10 years.",
+  "preparation": "No preparation needed. Bring your vaccination record so the dose can be written in.",
+  "source_url": "https://www.spkc.gov.lv/lv/vakcinacija",
+  "procedure_id": 9,
+  "history": [
+   {
+    "id": 41,
+    "title": "Tetanus & diphtheria booster",
+    "category": "vaccination",
+    "done_on": "2025-06-18",
+    "renew_on": "2035-06-18",
+    "checkup_type_id": 13,
+    "task_id": null,
+    "notes": "[demo] Td booster before a summer job on a building site.",
+    "attachment_name": null,
+    "created_at": "2026-09-24T01:14:11"
+   }
+  ]
+ },
+ "/api/checkups/30": {
+  "item": {
+   "kind": "guideline",
+   "id": 30,
+   "task_id": null,
+   "name": "Yearly check-up with your family doctor",
+   "category": "checkup",
+   "coverage": "state",
+   "status": "due_soon",
+   "due_on": "2026-10-06",
+   "days": 12,
+   "last_done": "2025-10-06",
+   "interval_months": 12
+  },
+  "summary": "Free once a year for every adult who has not seen their family doctor about an illness that year.",
+  "more_info": "The doctor measures blood pressure, pulse, weight and height, checks skin, heart, lungs and lymph nodes, and asks about sight, hearing and how you feel. It is also the visit where the doctor orders the other state-paid checks that fit your age.",
+  "preparation": "Bring a list of the medicines you take and any results from other doctors. Write down questions beforehand.",
+  "source_url": "https://www.vmnvd.gov.lv/lv/jaunums/kadas-profilaktiskas-veselibas-parbaudes-pieaugusie-var-veikt-bez-maksas",
+  "procedure_id": null,
+  "history": [
+   {
+    "id": 42,
+    "title": "Yearly check-up with your family doctor",
+    "category": "checkup",
+    "done_on": "2025-10-06",
+    "renew_on": null,
+    "checkup_type_id": 30,
+    "task_id": null,
+    "notes": "[demo] Blood pressure 121/78. Discussed family history of heart disease.",
+    "attachment_name": null,
+    "created_at": "2026-09-24T01:14:11"
+   },
+   {
+    "id": 40,
+    "title": "Yearly check-up with your family doctor",
+    "category": "checkup",
+    "done_on": "2024-10-14",
+    "renew_on": null,
+    "checkup_type_id": 30,
+    "task_id": null,
+    "notes": "[demo] Blood pressure 118/76, BMI 22.4. Referred for blood tests.",
+    "attachment_name": null,
+    "created_at": "2026-09-24T01:14:11"
+   }
+  ]
+ },
+ "/api/tasks/16": {
+  "id": 16,
+  "title": "Flu vaccine",
+  "category": "vaccination",
+  "description": "Seasonal flu shot at the family doctor.",
+  "doctor_name": null,
+  "doctor_specialty": null,
+  "repeat_every": 1,
+  "repeat_unit": "year",
+  "remind_every_minutes": null,
+  "created_at": "2026-09-24T13:35:10",
+  "events": [
+   {
+    "id": 31,
+    "due_on": "2026-11-16",
+    "status": "pending",
+    "done_on": null
+   }
+  ]
+ },
+ "/api/tasks/17": {
+  "id": 17,
+  "title": "Tick-borne encephalitis booster",
+  "category": "vaccination",
+  "description": "TBE booster before the tick season.",
+  "doctor_name": null,
+  "doctor_specialty": null,
+  "repeat_every": null,
+  "repeat_unit": null,
+  "remind_every_minutes": null,
+  "created_at": "2026-09-24T13:35:10",
+  "events": [
+   {
+    "id": 32,
+    "due_on": "2027-03-15",
+    "status": "pending",
+    "done_on": null
+   }
+  ]
+ },
+ "/api/tasks/18": {
+  "id": 18,
+  "title": "Dental check-up",
+  "category": "checkup",
+  "description": null,
+  "doctor_name": null,
+  "doctor_specialty": "Dentist",
+  "repeat_every": 1,
+  "repeat_unit": "year",
+  "remind_every_minutes": null,
+  "created_at": "2026-09-24T13:35:10",
+  "events": [
+   {
+    "id": 33,
+    "due_on": "2027-06-07",
+    "status": "pending",
+    "done_on": null
+   }
+  ]
+ },
+ "/api/procedures/8": {
+  "id": 8,
+  "code": "abdominal_ultrasound",
+  "name": "Abdominal ultrasound",
+  "summary": "Sound waves make pictures of your liver, gallbladder, kidneys and other organs. Painless, about 20 minutes, with cold gel on your belly.",
+  "steps": [
+   {
+    "id": 33,
+    "position": 1,
+    "text": "Stop eating - water only from now on",
+    "hours_before": 6
+   },
+   {
+    "id": 34,
+    "position": 2,
+    "text": "Drink 1 litre of water and do not empty your bladder (pelvic scans only)",
+    "hours_before": 1
+   },
+   {
+    "id": 35,
+    "position": 3,
+    "text": "Take your ID and the referral",
+    "hours_before": 1
+   }
+  ],
+  "plans": []
+ },
+ "/api/procedures/7": {
+  "id": 7,
+  "code": "cervical_smear",
+  "name": "Cervical smear",
+  "summary": "A nurse or gynaecologist takes a small sample of cells from the cervix with a soft brush. It takes a few minutes.",
+  "steps": [
+   {
+    "id": 30,
+    "position": 1,
+    "text": "Check the date is not during your period - rebook if it is",
+    "hours_before": 72
+   },
+   {
+    "id": 31,
+    "position": 2,
+    "text": "No intercourse, tampons or vaginal creams from now on",
+    "hours_before": 48
+   },
+   {
+    "id": 32,
+    "position": 3,
+    "text": "Take your ID",
+    "hours_before": 1
+   }
+  ],
+  "plans": []
+ },
+ "/api/procedures/2": {
+  "id": 2,
+  "code": "colonoscopy",
+  "name": "Colonoscopy",
+  "summary": "A camera looks at the inside of your large bowel. It can find and remove polyps before they turn into cancer. The bowel must be completely empty, so preparation starts days before.",
+  "steps": [
+   {
+    "id": 7,
+    "position": 1,
+    "text": "Ask your doctor whether to pause blood thinners or iron tablets",
+    "hours_before": 168
+   },
+   {
+    "id": 8,
+    "position": 2,
+    "text": "Start a low-fibre diet: no seeds, nuts, whole grains or raw vegetables",
+    "hours_before": 72
+   },
+   {
+    "id": 9,
+    "position": 3,
+    "text": "Clear liquids only from now on - water, clear broth, tea",
+    "hours_before": 24
+   },
+   {
+    "id": 10,
+    "position": 4,
+    "text": "Start the bowel preparation drink exactly as instructed",
+    "hours_before": 18
+   },
+   {
+    "id": 11,
+    "position": 5,
+    "text": "Arrange for someone to take you home",
+    "hours_before": 48
+   },
+   {
+    "id": 12,
+    "position": 6,
+    "text": "Stop drinking completely",
+    "hours_before": 2
+   },
+   {
+    "id": 13,
+    "position": 7,
+    "text": "Take your passport or ID card and the referral",
+    "hours_before": 2
+   }
+  ],
+  "plans": []
+ },
+ "/api/procedures/5": {
+  "id": 5,
+  "code": "ct_contrast",
+  "name": "CT scan with contrast",
+  "summary": "A CT scan is a fast X-ray scan. Contrast dye is injected into a vein to make blood vessels and organs show up more clearly. It can make you feel warm for a moment.",
+  "steps": [
+   {
+    "id": 22,
+    "position": 1,
+    "text": "Tell the clinic about kidney problems, diabetes medicine (metformin) or a contrast allergy",
+    "hours_before": 72
+   },
+   {
+    "id": 23,
+    "position": 2,
+    "text": "Stop eating - clear drinks are fine",
+    "hours_before": 4
+   },
+   {
+    "id": 24,
+    "position": 3,
+    "text": "Take your ID and the referral",
+    "hours_before": 2
+   },
+   {
+    "id": 25,
+    "position": 4,
+    "text": "Drink plenty of water afterwards to flush out the contrast",
+    "hours_before": null
+   }
+  ],
+  "plans": []
+ },
+ "/api/procedures/12": {
+  "id": 12,
+  "code": "eye_dilation",
+  "name": "Eye exam with dilating drops",
+  "summary": "Drops widen your pupils so the doctor can see the back of your eye. Your sight will be blurry and light-sensitive for 4-6 hours.",
+  "steps": [
+   {
+    "id": 49,
+    "position": 1,
+    "text": "Arrange a lift - you should not drive for 4-6 hours afterwards",
+    "hours_before": 24
+   },
+   {
+    "id": 50,
+    "position": 2,
+    "text": "Take sunglasses for the way home",
+    "hours_before": 1
+   },
+   {
+    "id": 51,
+    "position": 3,
+    "text": "Bring your current glasses or contact lenses",
+    "hours_before": 1
+   }
+  ],
+  "plans": []
+ },
+ "/api/procedures/3": {
+  "id": 3,
+  "code": "blood_test_fasting",
+  "name": "Fasting blood test",
+  "summary": "Some blood tests - glucose, cholesterol and lipids - need an empty stomach to give an accurate result. The draw itself takes a few minutes.",
+  "steps": [
+   {
+    "id": 14,
+    "position": 1,
+    "text": "Stop eating - water only from now on",
+    "hours_before": 12
+   },
+   {
+    "id": 15,
+    "position": 2,
+    "text": "No coffee, juice, alcohol or chewing gum",
+    "hours_before": 12
+   },
+   {
+    "id": 16,
+    "position": 3,
+    "text": "Drink a glass of water - it makes the draw easier",
+    "hours_before": 1
+   },
+   {
+    "id": 17,
+    "position": 4,
+    "text": "Take your ID and the referral",
+    "hours_before": 1
+   }
+  ],
+  "plans": []
+ },
+ "/api/procedures/1": {
+  "id": 1,
+  "code": "gastroscopy",
+  "name": "Gastroscopy",
+  "summary": "A thin, flexible camera is passed through your mouth to look at your oesophagus, stomach and the start of your small intestine. It takes 5-15 minutes. You can ask for a throat spray or light sedation.",
+  "steps": [
+   {
+    "id": 1,
+    "position": 1,
+    "text": "Ask your doctor whether to pause blood thinners or diabetes medicine",
+    "hours_before": 168
+   },
+   {
+    "id": 2,
+    "position": 2,
+    "text": "Arrange for someone to take you home if you have sedation",
+    "hours_before": 48
+   },
+   {
+    "id": 3,
+    "position": 3,
+    "text": "Stop eating - nothing solid from now on",
+    "hours_before": 8
+   },
+   {
+    "id": 4,
+    "position": 4,
+    "text": "Only small sips of water from now on, then nothing",
+    "hours_before": 4
+   },
+   {
+    "id": 5,
+    "position": 5,
+    "text": "Take your passport or ID card and the referral",
+    "hours_before": 2
+   },
+   {
+    "id": 6,
+    "position": 6,
+    "text": "Do not drive for the rest of the day if you had sedation",
+    "hours_before": null
+   }
+  ],
+  "plans": []
+ },
+ "/api/procedures/6": {
+  "id": 6,
+  "code": "mammography",
+  "name": "Mammography",
+  "summary": "A low-dose X-ray of the breasts. Each breast is pressed flat for a few seconds, which can be uncomfortable but is quick.",
+  "steps": [
+   {
+    "id": 26,
+    "position": 1,
+    "text": "Bring previous mammograms if they were done elsewhere",
+    "hours_before": 24
+   },
+   {
+    "id": 27,
+    "position": 2,
+    "text": "No deodorant, powder or lotion today",
+    "hours_before": 3
+   },
+   {
+    "id": 28,
+    "position": 3,
+    "text": "Wear a two-piece outfit",
+    "hours_before": 3
+   },
+   {
+    "id": 29,
+    "position": 4,
+    "text": "Take your ID",
+    "hours_before": 1
+   }
+  ],
+  "plans": []
+ },
+ "/api/procedures/4": {
+  "id": 4,
+  "code": "mri",
+  "name": "MRI scan",
+  "summary": "An MRI uses a strong magnet to make detailed pictures of the body. It is painless but loud, and you lie still in a narrow tunnel for 15-60 minutes. Metal is not allowed in the room.",
+  "steps": [
+   {
+    "id": 18,
+    "position": 1,
+    "text": "Tell the clinic about any implant, pacemaker or metal in your body",
+    "hours_before": 72
+   },
+   {
+    "id": 19,
+    "position": 2,
+    "text": "If you are claustrophobic, ask about a calming medicine",
+    "hours_before": 72
+   },
+   {
+    "id": 20,
+    "position": 3,
+    "text": "Leave jewellery and watches at home",
+    "hours_before": 2
+   },
+   {
+    "id": 21,
+    "position": 4,
+    "text": "Take your ID and the referral",
+    "hours_before": 2
+   }
+  ],
+  "plans": []
+ },
+ "/api/procedures/10": {
+  "id": 10,
+  "code": "surgery_anaesthesia",
+  "name": "Surgery under general anaesthesia",
+  "summary": "You will be fully asleep during the operation. Most rules exist to keep your stomach empty and to get you home safely afterwards.",
+  "steps": [
+   {
+    "id": 40,
+    "position": 1,
+    "text": "Arrange for someone to take you home and stay with you overnight",
+    "hours_before": 72
+   },
+   {
+    "id": 41,
+    "position": 2,
+    "text": "No smoking or alcohol from now on",
+    "hours_before": 24
+   },
+   {
+    "id": 42,
+    "position": 3,
+    "text": "Shower, and remove nail polish and jewellery",
+    "hours_before": 12
+   },
+   {
+    "id": 43,
+    "position": 4,
+    "text": "Stop eating - nothing solid from now on",
+    "hours_before": 6
+   },
+   {
+    "id": 44,
+    "position": 5,
+    "text": "Stop drinking - not even water",
+    "hours_before": 2
+   },
+   {
+    "id": 45,
+    "position": 6,
+    "text": "Take your passport or ID card, referral and list of medicines",
+    "hours_before": 2
+   }
+  ],
+  "plans": []
+ },
+ "/api/procedures/11": {
+  "id": 11,
+  "code": "tooth_extraction",
+  "name": "Tooth extraction",
+  "summary": "The dentist numbs the area and removes the tooth. Expect some swelling and soreness for a few days.",
+  "steps": [
+   {
+    "id": 46,
+    "position": 1,
+    "text": "Get painkillers in advance (ask which ones are fine for you)",
+    "hours_before": 24
+   },
+   {
+    "id": 47,
+    "position": 2,
+    "text": "Eat a light meal - you should not eat for 2 hours afterwards",
+    "hours_before": 3
+   },
+   {
+    "id": 48,
+    "position": 3,
+    "text": "Take your ID",
+    "hours_before": 1
+   }
+  ],
+  "plans": []
+ },
+ "/api/procedures/9": {
+  "id": 9,
+  "code": "vaccination",
+  "name": "Vaccination",
+  "summary": "A quick injection, usually in the upper arm. You wait about 15 minutes afterwards in case of a reaction.",
+  "steps": [
+   {
+    "id": 36,
+    "position": 1,
+    "text": "Find your vaccination record so the dose can be written in",
+    "hours_before": 24
+   },
+   {
+    "id": 37,
+    "position": 2,
+    "text": "Eat normally and wear a top with loose sleeves",
+    "hours_before": 2
+   },
+   {
+    "id": 38,
+    "position": 3,
+    "text": "Tell the nurse if you have a fever or a new allergy",
+    "hours_before": null
+   },
+   {
+    "id": 39,
+    "position": 4,
+    "text": "Wait 15 minutes at the clinic afterwards",
+    "hours_before": null
+   }
+  ],
+  "plans": []
+ }
+}
