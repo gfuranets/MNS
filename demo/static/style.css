@@ -621,27 +621,6 @@ details.fold > div { padding-bottom: 12px; color: var(--muted-foreground); line-
 
 .loading { padding: 40px 0; color: var(--muted-foreground); text-align: center; }
 
-/* ---------------------------------------------------------------------------
-   sign-in / sign-up
-   --------------------------------------------------------------------------- */
-
-.auth-page .content { display: flex; flex-direction: column; padding-top: 12px; }
-.brand { display: grid; justify-items: center; gap: 10px; margin: 20px 0 28px; text-align: center; }
-.brand .logo {
-  display: grid;
-  place-items: center;
-  width: 60px;
-  height: 60px;
-  border-radius: 18px;
-  background: var(--primary);
-  color: var(--primary-foreground);
-}
-.brand .logo svg { width: 30px; height: 30px; }
-.brand h2 { font-size: 1.35rem; font-weight: 800; }
-.lang-pick { min-height: 36px; padding: 4px 30px 4px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); font-weight: 700; font-size: 0.85rem; }
-.auth-alt { margin-top: 18px; text-align: center; color: var(--muted-foreground); font-size: 0.9rem; }
-.auth-foot { margin-top: auto; padding-top: 32px; text-align: center; color: var(--muted-foreground); font-size: 0.85rem; }
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

@@ -4,8 +4,7 @@
      t("home.greeting", { name: "Baiba" })   -> "Hi, Baiba"
      applyI18n(document)                     -> fills [data-i18n] / [data-i18n-placeholder]
 
-   The language lives in localStorage so the sign-in page can use it before
-   anyone is logged in; after login the saved profile language wins.
+   The language lives in localStorage; the saved profile language wins.
 
    Latvian numbers change the noun's case with the preposition:
      pēc / pirms / ik pēc + 1  -> genitive singular  (pēc 1 dienas)
@@ -64,23 +63,11 @@ const STRINGS = {
 
     "unit.day": "days", "unit.week": "weeks", "unit.month": "months", "unit.year": "years",
 
-    "login.title": "Sign in",
-    "login.email": "Email",
-    "login.password": "Password",
-    "login.submit": "Sign in",
-    "login.new": "New here?",
-    "login.create": "Create an account",
-    "login.language": "Language",
-    "login.privacy": "Your health data is never sold.",
 
-    "signup.title": "Create your account",
     "signup.step": "Step {n} of 3",
     "signup.name": "First name",
     "signup.surname": "Surname",
-    "signup.password_hint": "At least 8 characters.",
     "signup.phone": "Phone",
-    "signup.phone_hint": "Only used for text reminders, and only if you turn them on.",
-    "signup.have_account": "Already have an account?",
 
     "consent.title": "How we use your data",
     "consent.intro": "Before you add anything, here is exactly what this app keeps and why.",
@@ -275,7 +262,6 @@ const STRINGS = {
     "profile.language": "Language",
     "profile.privacy": "Privacy & data",
     "profile.broadcast": "Message all patients",
-    "profile.sign_out": "Sign out",
     "profile.years": "{n} years",
 
     "settings.title": "Reminders",
@@ -368,23 +354,11 @@ const STRINGS = {
 
     "unit.day": "dienas", "unit.week": "nedēļas", "unit.month": "mēneši", "unit.year": "gadi",
 
-    "login.title": "Pieteikties",
-    "login.email": "E-pasts",
-    "login.password": "Parole",
-    "login.submit": "Pieteikties",
-    "login.new": "Jauns lietotājs?",
-    "login.create": "Izveidot kontu",
-    "login.language": "Valoda",
-    "login.privacy": "Jūsu veselības dati netiek pārdoti.",
 
-    "signup.title": "Izveidojiet kontu",
     "signup.step": "{n}. solis no 3",
     "signup.name": "Vārds",
     "signup.surname": "Uzvārds",
-    "signup.password_hint": "Vismaz 8 rakstzīmes.",
     "signup.phone": "Tālrunis",
-    "signup.phone_hint": "Tiek izmantots tikai īsziņu atgādinājumiem un tikai tad, ja tos ieslēgsiet.",
-    "signup.have_account": "Jau ir konts?",
 
     "consent.title": "Kā mēs izmantojam jūsu datus",
     "consent.intro": "Pirms kaut ko pievienojat, lūk, ko tieši šī lietotne glabā un kāpēc.",
@@ -580,7 +554,6 @@ const STRINGS = {
     "profile.language": "Valoda",
     "profile.privacy": "Privātums un dati",
     "profile.broadcast": "Ziņa visiem pacientiem",
-    "profile.sign_out": "Iziet",
     "profile.years": (v) => `${v.n} ${lvSingular(v.n) ? "gads" : "gadi"}`,
 
     "settings.title": "Atgādinājumi",
@@ -657,7 +630,7 @@ function t(key, vars = {}) {
   return value.replace(/\{(\w+)\}/g, (_, name) => (name in vars ? vars[name] : `{${name}}`));
 }
 
-/* Fill static markup: <span data-i18n="login.title">, <input data-i18n-placeholder="..."> */
+/* Fill static markup: <span data-i18n="app.name">, <input data-i18n-placeholder="..."> */
 function applyI18n(root = document) {
   root.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
   root.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {

@@ -6,7 +6,7 @@ with plausible data; a few (settings, profile, tasks, log, inbox) are kept in
 memory so the UI reacts during the demo. Restarting the server resets it all.
 
 Run:  uvicorn main:app --reload   (from inside demo/)
-Any email + password logs in.
+There is no login: the app always opens as the demo user.
 """
 import copy
 import itertools
@@ -21,7 +21,6 @@ from fastapi.staticfiles import StaticFiles
 HERE = Path(__file__).parent
 SNAPSHOTS = {lang: json.loads((HERE / "data" / f"{lang}.json").read_text(encoding="utf-8"))
              for lang in ("en", "lv")}
-TOKEN = "demo-token"
 
 app = FastAPI(title="MNS - Medical Notification System (demo)")
 
@@ -80,17 +79,6 @@ def found(data):
 # --------------------------------------------------------------------------
 # user system
 # --------------------------------------------------------------------------
-
-@app.post("/api/signup", status_code=status.HTTP_201_CREATED)
-def signup():
-    return state.me
-
-
-@app.post("/api/login")
-def login():
-    """Demo: any email and password are accepted."""
-    return {"access_token": TOKEN, "token_type": "bearer"}
-
 
 @app.get("/api/me")
 def me():

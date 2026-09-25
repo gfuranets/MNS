@@ -5,7 +5,7 @@ server (`main.py`) — no database, no auth, no emails/SMS.
 
 - Every screen reads from `data/en.json` / `data/lv.json`, a snapshot of the
   real API for the persona **User Demo** (male, born 1991-04-18, Latvia).
-- Any email + password logs in (the login form is prefilled).
+- There is no login/sign-up: the app opens straight into the demo user's home screen.
 - Adding/deleting tasks and log entries, settings, profile edits and the inbox
   work in memory only; restarting the server resets everything.
 - Attachments are not stored — downloading one returns a placeholder file.

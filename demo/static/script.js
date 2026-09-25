@@ -32,14 +32,10 @@ const cal = (() => {
 const trail = [];
 let replacing = false;
 
-if (requireLogin()) start();
+start();
 
 async function start() {
-  try {
-    me = await api("/api/me");
-  } catch {
-    return logOut();
-  }
+  me = await api("/api/me");
   setLang(me.language);
   buildTabbar();
   trail.push(location.hash);
@@ -1253,7 +1249,6 @@ async function viewProfile() {
         h("button", { class: "btn outline", disabled: true }, icon("plus"), t("profile.family_add")),
         h("p", { class: "hint", style: "text-align:center" }, t("profile.soon"))),
 
-      h("div", { class: "form-foot" }, h("button", { class: "btn danger", onclick: logOut }, t("profile.sign_out"))),
     ],
   };
 }
@@ -1646,8 +1641,7 @@ async function viewPrivacy() {
           onclick: guard(async () => {
             if (prompt(t("privacy.delete_confirm")) !== "DELETE") return;
             await api("/api/me", { method: "DELETE" });
-            token.clear();
-            location.replace("login.html");
+            location.replace("#/home");
           }),
         }, t("privacy.delete"))),
     ],
